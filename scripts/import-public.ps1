@@ -1,11 +1,12 @@
 [CmdletBinding()]
 param(
     [string]$ObsidianRoot = 'E:\NoteAsProgrammer',
-    [string]$SiteRoot = $PSScriptRoot + '\..',
+    [string]$SiteRoot,
     [string]$PublicRoot = 'E:\NoteAsProgrammer\50_Public'
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $SiteRoot) { $SiteRoot = Join-Path $PSScriptRoot '..' }
 $unityRoot = Join-Path $ObsidianRoot '15_Interview_DeepDive\Unity'
 $siteNotes = Join-Path $SiteRoot 'src\content\notes'
 $publicUnity = Join-Path $PublicRoot 'Unity'

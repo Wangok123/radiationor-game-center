@@ -1,15 +1,11 @@
+﻿---
+slug: object-pool-ownership
+title: 对象池：所有权与容量策略
+date: 2026-09-29
+category: Unity architecture
+reading_time: 9 min
+excerpt: 对象池用复用换取更稳定的实例化/销毁成本和更少的短命分配，适合高频、同构、生命周期明确的对象。它不是默认优化：池会提高常驻内存、保留引用并引入状态重置、重复归还和场景残留风险。只有 Profiler 证明 `Instantiate/Destroy` 或分配位于热点后，才按峰值并发和回收策略设计池。
 ---
-kind: note
-tags: [Unity, ObjectPool, Memory, Lifecycle]
-status: seed
-scope: "Unity behavior must be checked against the target Unity version, package/render pipeline, platform, and workload."
-last_reviewed: 2026-09-29
-sources:
-  - https://docs.unity3d.com/2022.3/Documentation/ScriptReference/Pool.ObjectPool_1.html
-  - https://docs.unity3d.com/2022.3/Documentation/Manual/performance-garbage-collection-best-practices.html
-  - https://docs.unity3d.com/2022.3/Documentation/Manual/ManagingMemory.html
----
-
 # 对象池：所有权与容量策略
 
 ## 30 秒回答
@@ -85,7 +81,7 @@ pool memory        = inactive count * retained instance memory + active instance
 | feature/session scoped | UI composition、跨场景 loading FX | feature owner dispose 时释放 instance 和 prefab/resource owner | scope 太大导致内存永不下降。 |
 | app scoped | 很少数 truly global 的 audio/UI 基础设施 | 明确 shutdown 与诊断入口 | 变成隐藏 singleton，难以统计归属。 |
 
-当对象由 Addressables instantiate 得到时，instance 的回收、pool 的 reuse 与 handle/instance release 必须按当前 Addressables 版本和实际 API 成对设计。不要让一个 screen 关闭时 release 所有共享 prefab，也不要让 global pool 保存 scene-dependent component 引用。相关资源账本见 [[Advanced/10_资源引用生命周期与加载预算]]。
+当对象由 Addressables instantiate 得到时，instance 的回收、pool 的 reuse 与 handle/instance release 必须按当前 Addressables 版本和实际 API 成对设计。不要让一个 screen 关闭时 release 所有共享 prefab，也不要让 global pool 保存 scene-dependent component 引用。相关资源账本见 Advanced/10_资源引用生命周期与加载预算。
 
 ## Pool API 的最小边界
 
@@ -125,10 +121,3 @@ Unity 的 `ObjectPool<T>` 并不是线程安全容器。worker/Job 可以计算�
 - 全局 pool 存放 scene object 引用，使场景无法真正卸载。
 - 先 `Destroy`，后把同一实例 `Release`，或多个 caller 都认为自己是 lease owner。
 
-## 关联
-
-- [[Update调度_限频与批处理]]
-- [[主线程_API边界与结果回流]]
-- [[Advanced/10_资源引用生命周期与加载预算]]
-- [[../CSharp/async_await_取消与Unity生命周期]]
-- [[Advanced/09_性能证据链与基准设计]]

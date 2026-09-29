@@ -1,16 +1,11 @@
+﻿---
+slug: profiler-diagnosis-loop
+title: Profiler：从诊断到修复的闭环
+date: 2026-09-29
+category: Unity performance
+reading_time: 9 min
+excerpt: Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。先确保采样环境可比较，再按帧尖峰/尾延迟分类为 CPU、GPU、内存、IO 或同步；沿调用栈找到可控的工作量或等待原因；做最小改动后复测同一 workload，并检查是否把成本迁移到其他线程或 GPU。
 ---
-kind: note
-tags: [Unity, Profiler, Performance, Debugging]
-status: seed
-scope: "Unity 2022.3 profiling workflow; conclusions require the recorded device, player build, quality settings, workload, capture settings, and raw artifacts."
-last_reviewed: 2026-09-29
-sources:
-  - https://docs.unity3d.com/2022.3/Documentation/Manual/Profiler.html
-  - https://docs.unity3d.com/2022.3/Documentation/Manual/profiler-profiling-applications.html
-  - https://docs.unity3d.com/2022.3/Documentation/ScriptReference/Unity.Profiling.ProfilerRecorder.html
-related: ["[[Advanced/09_性能证据链与基准设计]]"]
----
-
 # Profiler：从诊断到修复的闭环
 
 ## 30 秒回答
@@ -38,7 +33,7 @@ Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。�
 | profiler | 连接方式、Deep Profile、call stack、profile area、capture 起止帧。 |
 | warm-up | 已加载资源、对象池状态、shader 状态，冷启动是否单独记录。 |
 
-以帧时间而不是 FPS 计算 P50/P95/P99；将冷启动、稳定战斗和场景切换分别看作不同 workload。详细 percentile 口径与基准合同见 [[Advanced/09_性能证据链与基准设计]]，本页聚焦于如何从一份 capture 收敛到可验证的改动。
+以帧时间而不是 FPS 计算 P50/P95/P99；将冷启动、稳定战斗和场景切换分别看作不同 workload。详细 percentile 口径与基准合同见 Advanced/09_性能证据链与基准设计，本页聚焦于如何从一份 capture 收敛到可验证的改动。
 
 ## 从线程时间线走到可控工作量
 
@@ -48,10 +43,8 @@ Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。�
 Long frame
   -> Main Thread busy?          -> find call count, allocation, per-call cost
   -> Main Thread waiting?       -> inspect dependency, VSync, render/GPU timeline
-  -> Render Thread submission?  -> correlate batches, SetPass, culling, material changes
   -> GPU over budget?           -> use GPU profiler / Frame Debugger / RenderDoc
   -> Worker busy or waiting?    -> inspect job dependency graph and Complete points
-  -> Memory/IO event?           -> correlate GC, native growth, loading and page faults
 ```
 
 一个 marker 的 self time 是它自身工作；total time 包含子调用。自顶向下先看总耗时与调用次数，再用调用树确认是哪一个子节点改变。只盯 self time 容易漏掉深层分配；只盯 total time 又可能把共同父节点误当根因。
@@ -63,7 +56,6 @@ Long frame
 | `GC.Alloc` | 当前调用有托管分配 | 一定会立刻卡顿。 |
 | `Gfx.WaitForPresent` | CPU 正等待图形呈现/帧限制 | 唯一的 GPU 瓶颈位置。 |
 | `Canvas.BuildBatch` | UI 批处理重建成本 | 只要拆 Canvas 就会更快。 |
-| `Physics.Simulate` | 物理模拟耗时 | 降 `fixedDeltaTime` 一定正确。 |
 
 还应区分“工作”与“等待”。`Gfx.WaitForPresent` 说明 CPU 处于等待图形呈现或帧限制的状态，下一步要比较 GPU 帧、VSync、帧率上限、Render Thread 和 pass 成本；它不是一个可直接优化的函数。`JobHandle.Complete` 高也可能是正确的同步点，只是暴露了上游 job 太晚 schedule、依赖过大或 batch 不合理。
 
@@ -96,11 +88,8 @@ Long frame
 
 capture、导出 CSV/JSON、build provenance 和最慢帧调用树应一起归档。图片只能辅助沟通，不能替代可重新打开的原始数据；单个 `ProfilerRecorder` 数字也不能替代多线程、GPU 与内存的完整归因。
 
-## LAT 项目映射与边界
 
-`Assets/Scripts/Editor/CombatFeelLabProfilerAnalyzer.cs` 和 `Assets/Tests_PlayMode/CombatFeel/combat-feel-lab-baseline_test.cs` 设计了 16 x 16 命中检测压力腿、60 tick 预热和 300 tick 样本窗口；`CombatFeelLabOverlay.cs` 也明确把 `OverlaySample` marker 限定在快照读取。这是很好的“先固定正确性 workload，再采样 marker”范例。
 
-源码同时限制了结论：分析器读取特定线程和 marker 子树，不能代表整帧、GPU、worker、native memory 或长时间 thermal 行为。当前没有归档的本机 capture/JSON/XML 时，不可说该 workload 已达标。完整边界与升级流程见 [[../Project_Experience/LAT_CombatFeelLab性能采样与Profiler证据案例]]。
 
 ## 最小行动模板
 
@@ -121,8 +110,3 @@ Decision: 若 GPU/draw 回归低于阈值则保留，否则调整拆分
 - [ ] 验证了成本没有转移到 GPU、其他线程、内存、画质或错误恢复路径。
 - [ ] 未达标/失败的 capture 同样被归档，下一次可复现。
 
-## 面试追问
-
-- `Gfx.WaitForPresent` 高说明什么？说明 CPU 在等待呈现或帧限制，需要继续看 GPU/Render Thread/VSync；不是“这个函数慢”。
-- 为什么平均 FPS 不够？少量严重长帧会被平均值掩盖，应在固定 workload 下报告 frame-time P95/P99 与对应帧归因。
-- 为什么优化后还要看 GPU 和内存？局部 CPU marker 下降可能通过更多 draw、缓存或异步队列把成本转移到别处。
