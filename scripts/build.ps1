@@ -160,7 +160,7 @@ function New-Page([string]$Title, [string]$Active, [string]$Body, [string]$Prefi
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="LIN 的 Unity 程序员作品集，包含游戏玩法、工具开发和技术笔记。">
+  <meta name="description" content="LIN 的 Unity 学习笔记，记录游戏玩法、工具开发和性能调试。">
   <title>$Title | LIN / Unity 程序员</title>
   <link rel="stylesheet" href="${Prefix}styles.css">
 </head>
@@ -185,18 +185,18 @@ function Get-NoteRow($Note) {
 "@
 }
 
-$works = @(Get-ContentItems (Join-Path $SourceDir 'content/works') | Sort-Object date -Descending)
+$works = @() # 目前尚未发布正式作品集，暂不展示 works 内容
 $notes = @(Get-ContentItems (Join-Path $SourceDir 'content/notes') | Sort-Object date -Descending)
 if (Test-Path $OutputDir) { Remove-Item -LiteralPath $OutputDir -Recurse -Force }
 New-Item -ItemType Directory -Path $OutputDir | Out-Null
 Copy-Item -Path (Join-Path $PSScriptRoot '../public/*') -Destination $OutputDir -Recurse -Force
 
-$featuredWorks = $works | Select-Object -First 3 | ForEach-Object { Get-WorkCard $_ }
+$featuredWorks = @()
 $latestNotes = $notes | Select-Object -First 3 | ForEach-Object { Get-NoteRow $_ }
 $homePage = @"
 <section class="hero"><div class="hero-media"></div><div class="hero-grid"></div><div class="wrap hero-content"><div class="eyebrow">Unity 程序开发 / 构建交互系统</div><h1>&#35753;&#29609;&#27861;&#36923;&#36753;&#12289;&#24037;&#20855;&#19982;&#21453;&#39304;&#21327;&#21516;&#24037;&#20316;&#12290;</h1><p class="lede">&#19987;&#27880; Unity &#19982; C# &#24320;&#21457;&#65292;&#26500;&#24314;&#21487;&#38752;&#30340;&#28216;&#25103;&#26426;&#21046;&#12289;&#21046;&#20316;&#24037;&#20855;&#21644;&#21487;&#32500;&#25252;&#30340;&#39033;&#30446;&#26550;&#26500;&#12290;</p><div class="cta-row"><a class="button" href="portfolio.html">&#26597;&#30475;&#31934;&#36873;&#20316;&#21697;</a><a class="button secondary" href="notes.html">&#38405;&#35835;&#23398;&#20064;&#31508;&#35760;</a></div></div></section>
 <section class="status-strip"><div class="wrap"><ul class="status-list"><li><span class="status-dot"></span><span>&#24403;&#21069;&#26041;&#21521;&#65306;Unity 6 / C# / URP</span></li><li><span class="status-dot"></span><span>&#20851;&#27880;&#39046;&#22495;&#65306;&#29609;&#27861;&#12289;&#24037;&#20855;&#19982;&#24615;&#33021;</span></li><li><span class="status-dot"></span><span>&#24037;&#20316;&#26041;&#24335;&#65306;&#23567;&#27493;&#39564;&#35777;&#65292;&#25345;&#32493;&#36845;&#20195;</span></li></ul></div></section>
-<section class="section"><div class="wrap"><div class="section-head"><div><div class="eyebrow">精选项目</div><h2>&#31934;&#36873;&#20316;&#21697;</h2></div><a class="text-link" href="portfolio.html">&#20840;&#37096;&#20316;&#21697; -&gt;</a></div><div class="work-grid">$($featuredWorks -join '')</div></div></section>
+<section class="section"><div class="wrap"><div class="section-head"><div><div class="eyebrow">整理中的内容</div><h2>先把笔记写清楚</h2></div><a class="text-link" href="notes.html">查看全部笔记 -&gt;</a></div><div class="empty-state"><p>正式作品集还在整理中。目前这里会持续记录 Unity、C#、工具开发与性能调试笔记。</p><a class="button" href="notes.html">进入学习笔记</a></div></div></section>
 <section class="section section-alt"><div class="wrap"><div class="section-head"><div><div class="eyebrow">技术笔记</div><h2>&#26368;&#26032;&#31508;&#35760;</h2></div><a class="text-link" href="notes.html">&#20840;&#37096;&#31508;&#35760; -&gt;</a></div><div class="notes-list">$($latestNotes -join '')</div></div></section>
 "@
 
@@ -207,7 +207,7 @@ $portfolioItems = $works | ForEach-Object {
 }
 
 $portfolio = @"
-<section class="page-intro"><div class="wrap"><div class="eyebrow">精选项目 / 2025-2026</div><h1>&#20316;&#21697;&#38598;</h1><p>&#22260;&#32469;&#29609;&#27861;&#25163;&#24863;&#12289;&#31995;&#32479;&#36793;&#30028;&#21644;&#24320;&#21457;&#25928;&#29575;&#26500;&#24314;&#30340; Unity &#39033;&#30446;&#19982;&#32534;&#36753;&#22120;&#24037;&#20855;&#12290;</p></div></section><section class="section"><div class="wrap"><div class="portfolio-list">$($portfolioItems -join '')</div></div></section>
+<section class="page-intro"><div class="wrap"><div class="eyebrow">内容整理中</div><h1>作品集</h1><p>正式作品集还在整理和打磨中，暂时不展示项目案例。当前主要更新 Unity 与 C# 学习笔记。</p></div></section><section class="section"><div class="wrap"><div class="empty-state"><p>这里会在有适合公开的完整项目后再更新。</p><a class="button secondary" href="notes.html">先阅读学习笔记</a></div></div></section>
 "@
 
 $allNotes = $notes | ForEach-Object { Get-NoteRow $_ }

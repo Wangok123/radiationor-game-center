@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Build the static site before every git push. A failed build stops the push.
+set -eu
+
+ROOT=$(git rev-parse --show-toplevel)
+echo "[pre-push] Building static site..."
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$ROOT/scripts/build.ps1"
+echo "[pre-push] Build passed. Continuing push."
