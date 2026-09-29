@@ -13,13 +13,28 @@ $OutputDir = [IO.Path]::GetFullPath($OutputDir)
 function Get-ContentItems {
     param([string]$Directory)
     Get-ChildItem -Path $Directory -Filter '*.md' -File | ForEach-Object {
-        $raw = Get-Content -Path $_.FullName -Raw
-        $match = [regex]::Match($raw, '(?s)^---\s*\r?\n(.*?)\r?\n---\s*\r?\n?(.*)$')
+            $raw = Get-Content -Path $_.FullName -Raw -Encoding utf8
+        $match = [regex]::Match($raw, '(?s)^---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)(.*)$')
         if (-not $match.Success) { throw "Missing front matter in $($_.FullName)" }
         $item = [ordered]@{ Body = $match.Groups[2].Value.Trim(); Slug = $_.BaseName }
         foreach ($line in ($match.Groups[1].Value -split "`r?`n")) {
             if ($line -match '^([^:]+):\s*(.*)$') { $item[$matches[1].Trim()] = $matches[2].Trim() }
         }
+            if (-not $item.Contains('title') -and $item.Body -match '(?m)^#\s+(.+)$') { $item['title'] = $matches[1].Trim() }
+            if (-not $item.Contains('date')) { $item['date'] = if ($item.Contains('last_reviewed')) { $item.last_reviewed } else { '2026-09-29' } }
+            if (-not $item.Contains('category')) {
+                $tagText = if ($item.Contains('tags')) { $item.tags } else { '' }
+                if ($tagText -match 'Performance|Profiler|Optimization') { $item['category'] = 'Unity performance' }
+                elseif ($tagText -match 'UGUI|Canvas') { $item['category'] = 'Unity UI' }
+                elseif ($tagText -match 'ObjectPool|Lifecycle') { $item['category'] = 'Unity architecture' }
+                else { $item['category'] = 'Unity development' }
+            }
+            if (-not $item.Contains('reading_time')) { $item['reading_time'] = '8 min' }
+            if (-not $item.Contains('excerpt')) {
+                $candidate = [regex]::Match($item.Body, '(?ms)^##\s+30.*?\r?\n\r?\n([^\r\n]+)')
+                if (-not $candidate.Success) { $candidate = [regex]::Match($item.Body, '(?m)^(?!#|>|\||```|\s*$)(.+)$') }
+                $item['excerpt'] = $candidate.Groups[1].Value.Trim()
+            }
         [pscustomobject]$item
     }
 }
@@ -27,7 +42,103 @@ function Get-ContentItems {
 function HtmlEncode([string]$Value) { [System.Net.WebUtility]::HtmlEncode($Value) }
 function Get-Tags([string]$Tags) { ($Tags -split '\s*\|\s*' | Where-Object { $_ }) | ForEach-Object { "<li>$(HtmlEncode $_)</li>" } }
 
-function Get-Header([string]$Active) {
+function Inline-Markdown([string]$Value) {
+    $result = HtmlEncode $Value
+    $result = [regex]::Replace($result, '`([^`]+)`', '<code>$1</code>')
+    $result = [regex]::Replace($result, '\*\*([^*]+)\*\*', '<strong>$1</strong>')
+    $result = [regex]::Replace($result, '\[([^\]]+)\]\(([^)]+)\)', '<a href="$2">$1</a>')
+    return $result
+}
+
+function Render-Markdown([string]$Markdown) {
+    $Markdown = [regex]::Replace($Markdown, '\[\[([^\]|]+)\|([^\]]+)\]\]', '$2')
+    $Markdown = [regex]::Replace($Markdown, '\[\[([^\]]+)\]\]', '$1')
+    $Markdown = (($Markdown -split "`r?`n" | Where-Object { $_ -notmatch 'LAT|Project_Experience|Assets/|E:\\|当前仓库' }) -join "`n")
+    $sections = [regex]::Split($Markdown, '(?m)(?=^##\s+)')
+    $Markdown = (($sections | Where-Object { $_ -notmatch '(?m)^##\s+(LAT|\u5173\u8054|\u9762\u8bd5\u8ffd\u95ee)' }) -join '')
+    $Markdown = $Markdown -replace '(?m)^#\s+.+\r?\n?', ''
+    $lines = $Markdown -split "`r?`n"
+    $html = [System.Collections.Generic.List[string]]::new()
+    $paragraph = [System.Collections.Generic.List[string]]::new()
+    $inCode = $false
+    $inList = $false
+    $inOrderedList = $false
+    $inTable = $false
+
+    function Flush-Paragraph {
+        if ($paragraph.Count -gt 0) {
+            $text = (($paragraph | ForEach-Object { (Inline-Markdown $_) }) -join ' ')
+            $html.Add("<p>$text</p>")
+            $paragraph.Clear()
+        }
+    }
+    function Close-Lists {
+        if ($inList) { $html.Add('</ul>'); Set-Variable -Name inList -Value $false -Scope 1 }
+        if ($inOrderedList) { $html.Add('</ol>'); Set-Variable -Name inOrderedList -Value $false -Scope 1 }
+    }
+    function Close-Table {
+        if ($inTable) { $html.Add('</tbody></table>'); Set-Variable -Name inTable -Value $false -Scope 1 }
+    }
+
+    foreach ($line in $lines) {
+        if ($line -match '^\s*```') {
+            Flush-Paragraph
+            Close-Lists
+            if (-not $inCode) { $html.Add('<pre><code>'); $inCode = $true } else { $html.Add('</code></pre>'); $inCode = $false }
+            continue
+        }
+        if ($inCode) { $html.Add((HtmlEncode $line)); continue }
+        if ($line -match '^\s*\|(.+)\|\s*$') {
+            Flush-Paragraph; Close-Lists
+            $cells = $line.Trim().Trim('|').Split('|') | ForEach-Object { $_.Trim() }
+            if (($cells -join '') -match '^[-: ]+$') { continue }
+            if (-not $inTable) {
+                $html.Add('<table><thead><tr>')
+                foreach ($cell in $cells) { $html.Add("<th>$(Inline-Markdown $cell)</th>") }
+                $html.Add('</tr></thead><tbody>')
+                $inTable = $true
+            } else {
+                $html.Add('<tr>')
+                foreach ($cell in $cells) { $html.Add("<td>$(Inline-Markdown $cell)</td>") }
+                $html.Add('</tr>')
+            }
+            continue
+        }
+        Close-Table
+        if ([string]::IsNullOrWhiteSpace($line)) { Flush-Paragraph; Close-Lists; continue }
+        if ($line -match '^(#{1,3})\s+(.+)$') {
+            Flush-Paragraph; Close-Lists
+            $level = $matches[1].Length
+            $html.Add("<h$level>$(Inline-Markdown $matches[2])</h$level>")
+            continue
+        }
+        if ($line -match '^\s*[-*]\s+(.+)$') {
+            Flush-Paragraph
+            if ($inOrderedList) { $html.Add('</ol>'); $inOrderedList = $false }
+            if (-not $inList) { $html.Add('<ul>'); $inList = $true }
+            $html.Add("<li>$(Inline-Markdown $matches[1])</li>")
+            continue
+        }
+        if ($line -match '^\s*\d+\.\s+(.+)$') {
+            Flush-Paragraph
+            if ($inList) { $html.Add('</ul>'); $inList = $false }
+            if (-not $inOrderedList) { $html.Add('<ol>'); $inOrderedList = $true }
+            $html.Add("<li>$(Inline-Markdown $matches[1])</li>")
+            continue
+        }
+        if ($line -match '^\s*>\s*(.*)$') {
+            Flush-Paragraph; Close-Lists
+            $html.Add("<blockquote>$(Inline-Markdown $matches[1])</blockquote>")
+            continue
+        }
+        $paragraph.Add($line.Trim())
+    }
+    Flush-Paragraph; Close-Lists; Close-Table
+    if ($inCode) { $html.Add('</code></pre>') }
+    return ($html -join "`n")
+}
+
+function Get-Header([string]$Active, [string]$Prefix = '') {
     $links = @(
         @{ Href = 'index.html'; Label = '&#39318;&#39029;'; Key = 'home' },
         @{ Href = 'portfolio.html'; Label = '&#20316;&#21697;&#38598;'; Key = 'portfolio' },
@@ -35,14 +146,14 @@ function Get-Header([string]$Active) {
         @{ Href = 'about.html'; Label = '&#20851;&#20110;&#25105;'; Key = 'about' }
     ) | ForEach-Object {
         $current = if ($_.Key -eq $Active) { ' aria-current="page"' } else { '' }
-        "<a href=`"$($_.Href)`"$current>$($_.Label)</a>"
+        "<a href=`"$Prefix$($_.Href)`"$current>$($_.Label)</a>"
     }
     @"
-<header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html" aria-label="Home"><span class="brand-mark">/U</span><span>LIN<br>UNITY PROGRAMMER</span><small>GAMEPLAY / TOOLS / SYSTEMS</small></a><nav class="nav" aria-label="Main navigation">$($links -join '')</nav></div></header>
+<header class="site-header"><div class="wrap header-inner"><a class="brand" href="${Prefix}index.html" aria-label="Home"><span class="brand-mark">/U</span><span>LIN<br>UNITY PROGRAMMER</span><small>GAMEPLAY / TOOLS / SYSTEMS</small></a><nav class="nav" aria-label="Main navigation">$($links -join '')</nav></div></header>
 "@
 }
 
-function New-Page([string]$Title, [string]$Active, [string]$Body) {
+function New-Page([string]$Title, [string]$Active, [string]$Body, [string]$Prefix = '') {
 @"
 <!doctype html>
 <html lang="zh-CN">
@@ -51,10 +162,10 @@ function New-Page([string]$Title, [string]$Active, [string]$Body) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="LIN, a Unity programmer focused on gameplay, tools, and systems.">
   <title>$Title | LIN / Unity Programmer</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="${Prefix}styles.css">
 </head>
 <body>
-$(Get-Header $Active)
+$(Get-Header $Active $Prefix)
 <main>$Body</main>
 <footer class="site-footer"><div class="wrap footer-inner"><span>LIN / UNITY PROGRAMMER</span><span>Built for games, tools, and clear feedback.</span></div></footer>
 </body>
@@ -70,7 +181,7 @@ function Get-WorkCard($Work) {
 
 function Get-NoteRow($Note) {
 @"
-<article class="note-row"><div class="note-date">$(HtmlEncode $Note.date)</div><div><div class="note-meta">$(HtmlEncode $Note.category) / $(HtmlEncode $Note.reading_time)</div><h3>$(HtmlEncode $Note.title)</h3><p>$(HtmlEncode $Note.excerpt)</p></div><a class="text-link" href="notes.html">READ NOTE -&gt;</a></article>
+<article class="note-row"><div class="note-date">$(HtmlEncode $Note.date)</div><div><div class="note-meta">$(HtmlEncode $Note.category) / $(HtmlEncode $Note.reading_time)</div><h3><a href="notes/$($Note.slug).html">$(HtmlEncode $Note.title)</a></h3><p>$(HtmlEncode $Note.excerpt)</p></div><a class="text-link" href="notes/$($Note.slug).html">READ NOTE -&gt;</a></article>
 "@
 }
 
@@ -109,6 +220,12 @@ $about = @"
 <section class="section"><div class="wrap about-layout"><div class="about-copy"><h2>&#25226;&#22797;&#26434;&#30340;&#31995;&#32479;&#20570;&#24471;&#28165;&#26224;&#12289;&#21487;&#36845;&#20195;&#12290;</h2><p>&#25105;&#20027;&#35201;&#20351;&#29992; Unity &#21644; C# &#36827;&#34892;&#29609;&#27861;&#12289;&#24037;&#20855;&#21644;&#39033;&#30446;&#26550;&#26500;&#24320;&#21457;&#12290;&#26085;&#24120;&#24037;&#20316;&#20250;&#20174;&#29609;&#23478;&#20307;&#39564;&#20986;&#21457;&#65292;&#36861;&#36394;&#27599;&#20010;&#36755;&#20837;&#12289;&#29366;&#24577;&#21644;&#21453;&#39304;&#22914;&#20309;&#36830;&#25509;&#21040;&#19968;&#36215;&#12290;</p><p>&#25105;&#21916;&#27426;&#22312;&#26089;&#26399;&#26126;&#30830;&#31995;&#32479;&#36793;&#30028;&#65292;&#29992;&#23567;&#22411;&#21487;&#27979;&#35797;&#30340;&#27169;&#22359;&#25215;&#36733;&#26680;&#24515;&#35268;&#21017;&#65292;&#20877;&#36890;&#36807;&#24037;&#20855;&#25226;&#37325;&#22797;&#24037;&#20316;&#20174;&#21046;&#20316;&#27969;&#31243;&#20013;&#31227;&#36208;&#12290;</p><h3>&#25216;&#26415;&#26632;</h3><div class="skill-board"><div><strong>GAMEPLAY</strong><span>Input, state, combat, AI behavior</span></div><div><strong>ARCHITECTURE</strong><span>C#, events, data-driven systems</span></div><div><strong>TOOLS</strong><span>UI Toolkit, custom inspectors, pipelines</span></div><div><strong>RUNTIME</strong><span>URP, profiling, loading, builds</span></div></div></div><aside class="terminal" aria-label="Developer profile"><div class="terminal-head">// developer.profile</div><div><span class="key">focus</span>: <span class="value">Unity gameplay</span></div><div><span class="key">language</span>: <span class="value">C#</span></div><div><span class="key">interests</span>: tools, systems, performance</div><div><span class="key">availability</span>: open to collaboration</div><div><span class="key">location</span>: China / remote</div></aside></div></section>
 "@
 
+$notePages = [ordered]@{}
+foreach ($note in $notes) {
+    $articleBody = "<section class=`"page-intro note-intro`"><div class=`"wrap`"><div class=`"eyebrow`">$(HtmlEncode $note.category) / $(HtmlEncode $note.date)</div><h1>$(HtmlEncode $note.title)</h1><p>$(HtmlEncode $note.excerpt)</p></div></section><section class=`"section`"><div class=`"wrap article-layout`"><article class=`"article-body`">$(Render-Markdown $note.Body)</article><aside class=`"article-aside`"><div class=`"eyebrow`">NOTE META</div><div><strong>Reading time</strong><span>$(HtmlEncode $note.reading_time)</span></div><div><strong>Category</strong><span>$(HtmlEncode $note.category)</span></div><a class=`"text-link`" href=`"../notes.html`">&lt;- &#36820;&#22238;&#31508;&#35760;</a></aside></div></section>"
+    $notePages["notes/$($note.slug).html"] = New-Page $note.title 'notes' $articleBody '../'
+}
+
 $pages = [ordered]@{
     'index.html' = (New-Page 'Home' 'home' $homePage)
     'portfolio.html' = (New-Page 'Portfolio' 'portfolio' $portfolio)
@@ -117,6 +234,11 @@ $pages = [ordered]@{
 }
 foreach ($page in $pages.GetEnumerator()) {
     Set-Content -Path (Join-Path $OutputDir $page.Key) -Value $page.Value -Encoding utf8
+}
+foreach ($notePage in $notePages.GetEnumerator()) {
+    $notePath = Join-Path $OutputDir $notePage.Key
+    New-Item -ItemType Directory -Path (Split-Path $notePath) -Force | Out-Null
+    Set-Content -Path $notePath -Value $notePage.Value -Encoding utf8
 }
 
 Write-Host "Built $($works.Count) works and $($notes.Count) notes to $OutputDir"
