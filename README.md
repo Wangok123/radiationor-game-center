@@ -1,20 +1,20 @@
-# Unity programmer portfolio
+# Unity 程序员个人网站
 
-A dependency-free static site designed for GitHub Pages. The site is generated from the Markdown files under `src/content`.
+这是一个适合 GitHub Pages 的零依赖静态网站。网站由 `src/content` 下的 Markdown 文件生成。
 
-## Local build
+## 本地构建
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Open `dist/index.html` after the build. The site does not need a local server.
+构建后打开 `dist/index.html` 即可预览，不需要启动本地服务器。
 
-## Add a work or note
+## 添加作品或笔记
 
-Copy one of the Markdown files in `src/content/works` or `src/content/notes`. Keep the front matter fields and update the values. Run the build command again.
+复制 `src/content/works` 或 `src/content/notes` 中的 Markdown 文件，保留头部字段并修改内容，然后重新运行构建命令。
 
-## Deploy
+## 部署
 
-Push the repository to GitHub's default branch. The included workflow publishes `dist` to GitHub Pages. In the repository settings, choose **GitHub Actions** as the Pages source.
+将仓库推送到 GitHub 默认分支。内置工作流会把 `dist` 发布到 GitHub Pages，在仓库设置中将 Pages 来源选择为 **GitHub Actions**。
 

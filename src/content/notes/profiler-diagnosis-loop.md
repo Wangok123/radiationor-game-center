@@ -2,8 +2,8 @@
 slug: profiler-diagnosis-loop
 title: Profiler：从诊断到修复的闭环
 date: 2026-09-29
-category: Unity performance
-reading_time: 9 min
+category: Unity 性能
+reading_time: 9 分钟
 excerpt: Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。先确保采样环境可比较，再按帧尖峰/尾延迟分类为 CPU、GPU、内存、IO 或同步；沿调用栈找到可控的工作量或等待原因；做最小改动后复测同一 workload，并检查是否把成本迁移到其他线程或 GPU。
 ---
 # Profiler：从诊断到修复的闭环

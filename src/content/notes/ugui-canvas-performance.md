@@ -2,8 +2,8 @@
 slug: ugui-canvas-performance
 title: UGUI Canvas 重建与性能
 date: 2026-09-29
-category: Unity UI
-reading_time: 8 min
+category: Unity 界面
+reading_time: 8 分钟
 excerpt: UGUI 的性能瓶颈常是 Canvas rebuild、layout 计算、graphic 更新和批次碎片，而不是“UI 元素数量”本身。把高频变化元素与静态元素拆到合适 Canvas，减少 layout 链和不必要的 `SetActive`/文本重排；先在 Profiler 观察 `Canvas.BuildBatch`、layout marker 和实际 draw/batch，再决定拆分粒度。
 ---
 # UGUI Canvas 重建与性能

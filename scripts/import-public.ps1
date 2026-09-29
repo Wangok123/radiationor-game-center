@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$ObsidianRoot = 'E:\NoteAsProgrammer',
     [string]$SiteRoot,
@@ -14,9 +14,9 @@ New-Item -ItemType Directory -Force -Path $siteNotes,$publicUnity | Out-Null
 
 $files = @(Get-ChildItem -LiteralPath $unityRoot -File | Sort-Object Name)
 $sources = @(
-    @{ Source = ($files | Where-Object Name -like 'Profiler*').FullName; Slug = 'profiler-diagnosis-loop'; Category = 'Unity performance'; Reading = '9 min' },
-    @{ Source = ($files | Where-Object Name -like 'UGUI*').FullName; Slug = 'ugui-canvas-performance'; Category = 'Unity UI'; Reading = '8 min' },
-    @{ Source = $files[4].FullName; Slug = 'object-pool-ownership'; Category = 'Unity architecture'; Reading = '9 min' }
+    @{ Source = ($files | Where-Object Name -like 'Profiler*').FullName; Slug = 'profiler-diagnosis-loop'; Category = 'Unity 性能'; Reading = '9 分钟' },
+    @{ Source = ($files | Where-Object Name -like 'UGUI*').FullName; Slug = 'ugui-canvas-performance'; Category = 'Unity 界面'; Reading = '8 分钟' },
+    @{ Source = $files[4].FullName; Slug = 'object-pool-ownership'; Category = 'Unity 架构'; Reading = '9 分钟' }
 )
 
 foreach ($entry in $sources) {
@@ -53,3 +53,4 @@ excerpt: $excerpt
 }
 
 Write-Host "Imported $($sources.Count) public Unity notes."
+

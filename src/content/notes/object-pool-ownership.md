@@ -2,8 +2,8 @@
 slug: object-pool-ownership
 title: 对象池：所有权与容量策略
 date: 2026-09-29
-category: Unity architecture
-reading_time: 9 min
+category: Unity 架构
+reading_time: 9 分钟
 excerpt: 对象池用复用换取更稳定的实例化/销毁成本和更少的短命分配，适合高频、同构、生命周期明确的对象。它不是默认优化：池会提高常驻内存、保留引用并引入状态重置、重复归还和场景残留风险。只有 Profiler 证明 `Instantiate/Destroy` 或分配位于热点后，才按峰值并发和回收策略设计池。
 ---
 # 对象池：所有权与容量策略

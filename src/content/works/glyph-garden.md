@@ -1,15 +1,15 @@
 ---
-title: Glyph Garden
-type: Systems-driven puzzle game
+title: 符文花园
+type: 系统驱动解谜游戏
 date: 2025
 platform: Windows
-status: Prototype complete
-summary: A quiet grid puzzle where players grow a reactive garden by chaining elemental glyphs and planning around limited space.
+status: 原型完成
+summary: 一款安静的格子解谜游戏，玩家通过连接元素符文、规划有限空间来培育会产生反应的花园。
 tech: Unity | C# | ScriptableObject | Custom Editor Tools
-role: Game architecture, tools, save system
-highlight: Designed data-first puzzle rules so designers could compose levels without changing gameplay code.
+role: 游戏架构、工具、存档系统
+highlight: 设计数据优先的解谜规则，让设计人员无需修改玩法代码即可组合关卡。
 image: https://images.unsplash.com/photo-1497250681960-ef046c08a56e?auto=format&fit=crop&w=1200&q=85
 ---
 
-The project is a study in making systemic rules feel approachable. A content pipeline based on ScriptableObjects keeps the board logic isolated from presentation and lets each glyph declare its own behavior.
+这个项目研究如何让系统规则保持易理解。基于 ScriptableObject 的内容流程将棋盘逻辑与表现分离，让每个符文自行声明行为。
 
