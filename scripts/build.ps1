@@ -193,10 +193,10 @@ Copy-Item -Path (Join-Path $PSScriptRoot '../public/*') -Destination $OutputDir 
 $featuredWorks = @()
 $latestNotes = $notes | Select-Object -First 3 | ForEach-Object { Get-NoteRow $_ }
 $homePage = @"
-<section class="hero"><div class="hero-media"></div><div class="hero-grid"></div><div class="wrap hero-content"><div class="eyebrow">Unity 程序开发 / 构建交互系统</div><h1>&#35753;&#29609;&#27861;&#36923;&#36753;&#12289;&#24037;&#20855;&#19982;&#21453;&#39304;&#21327;&#21516;&#24037;&#20316;&#12290;</h1><p class="lede">&#19987;&#27880; Unity &#19982; C# &#24320;&#21457;&#65292;&#26500;&#24314;&#21487;&#38752;&#30340;&#28216;&#25103;&#26426;&#21046;&#12289;&#21046;&#20316;&#24037;&#20855;&#21644;&#21487;&#32500;&#25252;&#30340;&#39033;&#30446;&#26550;&#26500;&#12290;</p><div class="cta-row"><a class="button" href="notes.html">&#38405;&#35835;&#23398;&#20064;&#31508;&#35760;</a><a class="button secondary" href="about.html">&#20851;&#20110;&#25105;</a></div></div></section>
-<section class="status-strip"><div class="wrap"><ul class="status-list"><li><span class="status-dot"></span><span>&#24403;&#21069;&#26041;&#21521;&#65306;Unity 6 / C# / URP</span></li><li><span class="status-dot"></span><span>&#20851;&#27880;&#39046;&#22495;&#65306;&#29609;&#27861;&#12289;&#24037;&#20855;&#19982;&#24615;&#33021;</span></li><li><span class="status-dot"></span><span>&#24037;&#20316;&#26041;&#24335;&#65306;&#23567;&#27493;&#39564;&#35777;&#65292;&#25345;&#32493;&#36845;&#20195;</span></li></ul></div></section>
-<section class="section"><div class="wrap"><div class="section-head"><div><div class="eyebrow">整理中的内容</div><h2>先把笔记写清楚</h2></div><a class="text-link" href="notes.html">查看全部笔记 -&gt;</a></div><div class="empty-state"><p>正式作品集还在整理中。目前这里会持续记录 Unity、C#、工具开发与性能调试笔记。</p><a class="button" href="notes.html">进入学习笔记</a></div></div></section>
-<section class="section section-alt"><div class="wrap"><div class="section-head"><div><div class="eyebrow">技术笔记</div><h2>&#26368;&#26032;&#31508;&#35760;</h2></div><a class="text-link" href="notes.html">&#20840;&#37096;&#31508;&#35760; -&gt;</a></div><div class="notes-list">$($latestNotes -join '')</div></div></section>
+<section class="hero"><div class="hero-media"></div><div class="hero-grid"></div><div class="wrap hero-content"><div class="eyebrow">独立游戏开发者 / Unity 学习日志</div><h1>把一个小想法，做成可以玩的东西。</h1><p class="lede">这里记录我用 Unity 和 C# 练习玩法、工具与性能的过程。还没有正式作品集，先把每一次试错和验证写下来。</p><div class="cta-row"><a class="button" href="notes.html">&#38405;&#35835;&#23398;&#20064;&#31508;&#35760;</a><a class="button secondary" href="about.html">&#20851;&#20110;&#25105;</a></div></div></section>
+<section class="status-strip"><div class="wrap"><ul class="status-list"><li><span class="status-dot"></span><span>当前工作台：Unity 6 / C# / URP</span></li><li><span class="status-dot"></span><span>正在研究：玩法、工具与性能</span></li><li><span class="status-dot"></span><span>开发方式：小步验证，持续迭代</span></li></ul></div></section>
+<section class="section"><div class="wrap"><div class="section-head"><div><div class="eyebrow">开发日志  /  目前进行中</div><h2>先把笔记写清楚</h2></div><a class="text-link" href="notes.html">查看全部笔记 -&gt;</a></div><div class="empty-state"><p>作品集还在发芽。现在这里是一张开发桌：记录遇到的问题、做过的实验，以及最后留下来的可靠做法。</p><a class="button" href="notes.html">进入学习笔记</a></div></div></section>
+<section class="section section-alt"><div class="wrap"><div class="section-head"><div><div class="eyebrow">开发日志  /  最近写下</div><h2>从问题开始，留下答案</h2></div><a class="text-link" href="notes.html">&#20840;&#37096;&#31508;&#35760; -&gt;</a></div><div class="notes-list">$($latestNotes -join '')</div></div></section>
 "@
 
 $portfolioItems = $works | ForEach-Object {
@@ -211,7 +211,7 @@ $portfolio = @"
 
 $allNotes = $notes | ForEach-Object { Get-NoteRow $_ }
 $notesPage = @"
-<section class="page-intro"><div class="wrap"><div class="eyebrow">技术笔记 / Unity 与 C#</div><h1>&#23398;&#20064;&#31508;&#35760;</h1><p>&#35760;&#24405;&#39033;&#30446;&#20013;&#39564;&#35777;&#36807;&#30340;&#20570;&#27861;&#12289;&#26550;&#26500;&#21462;&#33293;&#19982;&#35843;&#35797;&#36807;&#31243;&#12290;&#20869;&#23481;&#30001; Markdown &#25991;&#20214;&#29983;&#25104;&#65292;&#20415;&#20110;&#25345;&#32493;&#31215;&#32047;&#12290;</p></div></section><section class="section"><div class="wrap"><div class="notes-list">$($allNotes -join '')</div></div></section>
+<section class="page-intro"><div class="wrap"><div class="eyebrow">开发日志 / Unity 与 C#</div><h1>学习笔记</h1><p>把试错过程留下来：玩法实验、工具拆解、性能诊断和那些值得以后再看的小结。每一篇都来自实际练习。</p></div></section><section class="section"><div class="wrap"><div class="notes-list">$($allNotes -join '')</div></div></section>
 "@
 
 $about = @"
