@@ -4,6 +4,9 @@ title: 对象池：所有权与容量策略
 date: 2026-09-29
 category: Unity 架构
 reading_time: 9 分钟
+updated: 2026-09-30
+tags: C# | ObjectPool | 生命周期
+summary: 对象池什么时候值得用？从所有权、状态重置、容量与场景生命周期梳理常见取舍。
 excerpt: 对象池用复用换取更稳定的实例化/销毁成本和更少的短命分配，适合高频、同构、生命周期明确的对象。它不是默认优化：池会提高常驻内存、保留引用并引入状态重置、重复归还和场景残留风险。只有 Profiler 证明 `Instantiate/Destroy` 或分配位于热点后，才按峰值并发和回收策略设计池。
 ---
 # 对象池：所有权与容量策略
@@ -81,7 +84,7 @@ pool memory        = inactive count * retained instance memory + active instance
 | feature/session scoped | UI composition、跨场景 loading FX | feature owner dispose 时释放 instance 和 prefab/resource owner | scope 太大导致内存永不下降。 |
 | app scoped | 很少数 truly global 的 audio/UI 基础设施 | 明确 shutdown 与诊断入口 | 变成隐藏 singleton，难以统计归属。 |
 
-当对象由 Addressables instantiate 得到时，instance 的回收、pool 的 reuse 与 handle/instance release 必须按当前 Addressables 版本和实际 API 成对设计。不要让一个 screen 关闭时 release 所有共享 prefab，也不要让 global pool 保存 scene-dependent component 引用。相关资源账本见 Advanced/10_资源引用生命周期与加载预算。
+当对象由 Addressables instantiate 得到时，instance 的回收、pool 的 reuse 与 handle/instance release 必须按当前 Addressables 版本和实际 API 成对设计。不要让一个 screen 关闭时 release 所有共享 prefab，也不要让 global pool 保存 scene-dependent component 引用。建议分别记录实例、prefab 和加载 handle 的 owner、创建时间与释放时机。
 
 ## Pool API 的最小边界
 

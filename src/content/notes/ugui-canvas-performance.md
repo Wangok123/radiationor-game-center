@@ -4,6 +4,9 @@ title: UGUI Canvas 重建与性能
 date: 2026-09-29
 category: Unity 界面
 reading_time: 8 分钟
+updated: 2026-09-30
+tags: UGUI | Canvas | 性能诊断
+summary: Canvas 拆分并非万能。分清布局、重建、GPU 与输入成本，再选择合适的更新边界。
 excerpt: UGUI 的性能瓶颈常是 Canvas rebuild、layout 计算、graphic 更新和批次碎片，而不是“UI 元素数量”本身。把高频变化元素与静态元素拆到合适 Canvas，减少 layout 链和不必要的 `SetActive`/文本重排；先在 Profiler 观察 `Canvas.BuildBatch`、layout marker 和实际 draw/batch，再决定拆分粒度。
 ---
 # UGUI Canvas 重建与性能
@@ -74,7 +77,7 @@ pointer event
 4. 可变高度列表需要记录高度测量、锚点保持和滚动位置校正；“不固定高度”不是跳过虚拟化的理由。
 5. 列表 item 的 `LayoutElement`、嵌套 group、文本自动换行和图片异步到达会互相触发布局，先用小 fixture 查明连锁范围。
 
-虚拟化的正确性 contract 不只是在滚动时少创建对象：复用后的 item 不得展示上一个数据项的头像、选中状态、点击回调或异步加载结果。它与对象池的 lease/generation 问题相同，见 对象池_所有权与容量策略。
+虚拟化的正确性 contract 不只是在滚动时少创建对象：复用后的 item 不得展示上一个数据项的头像、选中状态、点击回调或异步加载结果。它与对象池的 lease/generation 问题相同，见 [对象池：所有权与容量策略](object-pool-ownership.html)。
 
 ## 批处理、透明与 GPU
 
@@ -119,8 +122,4 @@ CPU rebuild improved
 | 静态/10Hz/每帧文本 | 内容、字体、数值分布 | text mesh/GC、layout、视觉准确度 | 只在体验允许的频率降本。 |
 | 10/100/1000 item 列表 | item 模板、可变高度、滚动轨迹 | active item 数、bind/unbind、GC、滚动尾延迟 | 无旧数据/回调泄漏，成本受视口大小控制。 |
 | scene 往返与异步图片 | UIRoot owner、cache 状态、完成顺序 | handle、generation、memory、旧结果丢弃数 | 无资源泄漏和跨 screen 写回。 |
-
-## 最小实验
-
-构建一个静态面板加高频计数器和长列表的场景，分别比较单 Canvas、计数器/列表按更新域拆分、过度拆分三种版本。再对每一变体比较静态、10Hz 和每帧文本刷新。采集 rebuild 时间、batch、GPU overdraw、raycast、GC、P95/P99 以及视觉/输入 smoke；使用 Experiments/04_UI_Rebuild与Canvas拆分 保存原始证据。
 

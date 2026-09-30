@@ -4,6 +4,9 @@ title: Profiler：从诊断到修复的闭环
 date: 2026-09-29
 category: Unity 性能
 reading_time: 9 分钟
+updated: 2026-09-30
+tags: Profiler | 性能诊断 | GC
+summary: 从一次卡顿出发，区分 CPU 工作、等待与 GPU 成本，再用可比较的采样验证修改。
 excerpt: Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。先确保采样环境可比较，再按帧尖峰/尾延迟分类为 CPU、GPU、内存、IO 或同步；沿调用栈找到可控的工作量或等待原因；做最小改动后复测同一 workload，并检查是否把成本迁移到其他线程或 GPU。
 ---
 # Profiler：从诊断到修复的闭环
@@ -33,7 +36,7 @@ Profiler 的用途是定位并证明瓶颈，不是寻找最大的一根条。�
 | profiler | 连接方式、Deep Profile、call stack、profile area、capture 起止帧。 |
 | warm-up | 已加载资源、对象池状态、shader 状态，冷启动是否单独记录。 |
 
-以帧时间而不是 FPS 计算 P50/P95/P99；将冷启动、稳定战斗和场景切换分别看作不同 workload。详细 percentile 口径与基准合同见 Advanced/09_性能证据链与基准设计，本页聚焦于如何从一份 capture 收敛到可验证的改动。
+以帧时间而不是 FPS 计算 P50/P95/P99；将冷启动、稳定战斗和场景切换分别看作不同 workload。比较前明确采样时长、预热条件与分位数计算方式，本页聚焦于如何从一份 capture 收敛到可验证的改动。
 
 ## 从线程时间线走到可控工作量
 
