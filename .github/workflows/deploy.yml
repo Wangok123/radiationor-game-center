@@ -1,4 +1,4 @@
-name: Deploy game to GitHub Pages
+name: Deploy game center to GitHub Pages
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # 没有构建步骤：site/ 就是可直接托管的静态站点
+      # 没有构建步骤：site/ 就是可直接托管的静态站点（首页 + assets/ 共用层 + games/ 各游戏）
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

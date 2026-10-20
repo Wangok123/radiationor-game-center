@@ -8,7 +8,7 @@
 | `nostr.js` | `@trystero-p2p/nostr` 0.26.0 | 用 Nostr 中继交换信令 | ~74 KB |
 | `torrent.js` | `@trystero-p2p/torrent` 0.26.0 | 用 BitTorrent tracker 交换信令 | ~64 KB |
 
-`app.js` 会根据页面上选中的策略**按需动态 import**，所以只会下载其中一个。
+`assets/room.js` 会根据页面上选中的策略**按需动态 import**，所以只会下载其中一个；所有游戏共用同一份。
 
 ## 为什么提交打包产物
 

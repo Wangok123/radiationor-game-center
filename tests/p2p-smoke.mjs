@@ -3,7 +3,7 @@
 //   node tests/p2p-smoke.mjs
 //
 // 做的事：
-//   1. 起本地静态服务器（scripts/serve.mjs），加载 site/
+//   1. 起本地静态服务器（scripts/serve.mjs），加载 site/ 下的五子棋页
 //   2. 开两个无头浏览器：一个创建房间，一个加入房间
 //   3. 检查连上、轮流失子、五连判胜、聊天同步、刷新重连回座位、重新开始、房主离开提示
 //
@@ -161,7 +161,7 @@ const onlineCount = (snapshot) => Number((snapshot.net.match(/(\d+) 人在线/) 
 const clickCell = (cdp, index) => cdp.evaluate(`document.querySelector('#board .cell[data-index="${index}"]').click()`)
 
 async function enterRoom(cdp, {name, code, action}) {
-  await cdp.send('Page.navigate', {url: `${BASE}/`})
+  await cdp.send('Page.navigate', {url: `${BASE}/games/gomoku/`})
   await sleep(1500)
   await cdp.evaluate(`(() => {
     document.getElementById('name-input').value = ${JSON.stringify(name)}
@@ -238,7 +238,7 @@ async function main() {
     if (diag.includes('还没有连上任何人')) problems.push('诊断面板没有刷新对端状态')
 
     console.log('[6] 客人用邀请链接刷新重连，应回到白棋座位且棋盘保留')
-    await guest.cdp.send('Page.navigate', {url: `${BASE}/?room=${room}&relay=mqtt`})
+    await guest.cdp.send('Page.navigate', {url: `${BASE}/games/gomoku/?room=${room}&relay=mqtt`})
     let reconnected = false
     for (let second = 1; second <= 20; second++) {
       await sleep(1000)

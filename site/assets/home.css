@@ -1,0 +1,124 @@
+/* 首页：hero、游戏卡片、联机说明。 */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 3px solid var(--ink);
+  background: var(--night);
+  color: var(--paper);
+}
+/* 淡淡的棋盘格纹，呼应桌游主题 */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(to right, rgba(255, 255, 255, .05) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, .05) 0 1px, transparent 1px 44px);
+  pointer-events: none;
+}
+.hero-inner { position: relative; padding: 54px 0 46px; }
+.hero .eyebrow { color: #a8d6cb; }
+.hero h1 {
+  max-width: 720px;
+  margin: 0 0 16px;
+  font-size: clamp(32px, 6vw, 52px);
+  line-height: 1.15;
+  font-weight: 900;
+}
+.hero-lede { max-width: 620px; margin: 0 0 26px; color: #d4ded7; font-size: 17px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-actions .button.secondary { border-color: #91b5ae; color: #dce9df; background: transparent; box-shadow: none; }
+.hero-actions .button.secondary:hover { border-color: var(--yellow); color: var(--night); background: var(--yellow); }
+.hero-badges {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  margin: 26px 0 0; padding: 0; list-style: none;
+  color: #9fb1af; font: 700 12px/1.6 var(--mono);
+}
+.hero-badges li::before { content: "＋ "; color: var(--yellow); }
+
+/* ---------- 游戏列表 ---------- */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+  margin: 0; padding: 0; list-style: none;
+}
+.game-card {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  grid-template-areas:
+    "icon body"
+    "enter enter";
+  gap: 14px 16px;
+  padding: 18px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  box-shadow: 6px 6px 0 #e3e7e7;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+a.game-card:hover, a.game-card:focus-visible {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 #e3e7e7;
+}
+.game-icon {
+  grid-area: icon;
+  width: 60px; height: 60px;
+  display: grid; place-items: center;
+  border: 2px solid var(--ink);
+  background: #f6e9cd;
+}
+.game-icon svg { width: 34px; height: 34px; }
+.game-body { grid-area: body; min-width: 0; }
+.game-body h3 { margin: 0 0 6px; font-size: 19px; font-weight: 900; }
+.game-body p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.game-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 0; padding: 0; list-style: none;
+  color: var(--muted); font: 700 11px/1.6 var(--mono);
+}
+.game-meta li { padding: 1px 7px; border: 1px solid var(--line); background: var(--paper-2); }
+.game-enter {
+  grid-area: enter;
+  justify-self: end;
+  color: var(--coral);
+  font: 900 13px/1.4 var(--mono);
+}
+a.game-card:hover .game-enter { color: var(--cyan); }
+
+.game-card.is-coming {
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+.game-card.is-coming .game-icon { border-style: dashed; background: transparent; }
+.game-card.is-coming .game-icon svg { opacity: .45; }
+.game-card.is-coming .game-body h3 { color: var(--muted); }
+.game-card.is-coming .game-enter { color: var(--muted); }
+
+/* ---------- 怎么联机 ---------- */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin: 0 0 18px; padding: 0; list-style: none;
+  counter-reset: step;
+}
+.step {
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  padding: 16px 18px;
+}
+.step-num {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--coral);
+  font: 900 22px/1 var(--mono);
+}
+.step h3 { margin: 0 0 4px; font-size: 15px; }
+.step p { margin: 0; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 880px) {
+  .hero-inner { padding: 38px 0 34px; }
+  .game-grid { grid-template-columns: minmax(0, 1fr); }
+}

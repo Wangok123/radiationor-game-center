@@ -13,7 +13,7 @@ import {
   findWinLine,
   isFull,
   other
-} from '../site/gomoku.js'
+} from '../site/games/gomoku/rules.js'
 
 const put = (board, coords, color) => {
   for (const [x, y] of coords) board[indexOf(x, y)] = color

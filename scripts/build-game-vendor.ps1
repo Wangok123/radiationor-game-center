@@ -1,4 +1,4 @@
-﻿# 重新生成 site/vendor 下的联机依赖。
+﻿# 重新生成 site/assets/vendor 下的联机依赖。
 #
 # 只有升级 Trystero 时才需要跑一次。产物（vendor/*.js）是提交进仓库的，
 # 因此构建站点、部署到 GitHub Pages 都不需要 Node。
@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $workDir = Join-Path $repoRoot '.tools/vendor'
-$outDir = Join-Path $repoRoot 'site/vendor'
+$outDir = Join-Path $repoRoot 'site/assets/vendor'
 
 # 固定版本，避免每次生成出不同的产物
 $trysteroVersion = '0.26.0'
@@ -60,4 +60,4 @@ foreach ($name in $strategies) {
     Write-Host ("    {0,-8} {1,7} KB" -f "$name.js", $size)
 }
 
-Write-Host "[3/3] 完成。产物在 site/vendor/，记得把改动一起提交。"
+Write-Host "[3/3] 完成。产物在 site/assets/vendor/，记得把改动一起提交。"
