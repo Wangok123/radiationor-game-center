@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111820">
+<title>联机五子棋 · 无服务器的点对点桌游</title>
+<meta name="description" content="纯静态、无服务器的联机五子棋：房主的浏览器负责判定，棋盘数据通过 WebRTC 在玩家之间直传，房间靠公共中继牵线。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <h1 class="brand"><span class="brand-mark" aria-hidden="true">/G</span><span>联机五子棋</span></h1>
+    <p class="topbar-note">无服务器 · 浏览器之间直连 · 静态页托管在 GitHub Pages</p>
+  </div>
+</header>
+
+<main id="main-content" class="wrap">
+
+  <!-- ============ 入口：房间设置 ============ -->
+  <section class="panel entry-panel" id="entry-panel" aria-labelledby="entry-title">
+    <h2 class="panel-title" id="entry-title">开一局</h2>
+    <p class="panel-note">房主的浏览器负责判定，其他人只要房间号。同一个房间号只能有一个房主，朋友请点「加入房间」或直接用你发的邀请链接。</p>
+
+    <div class="field-grid">
+      <label class="field">
+        <span>昵称</span>
+        <input id="name-input" type="text" maxlength="12" autocomplete="nickname" placeholder="朋友怎么称呼你">
+      </label>
+      <label class="field">
+        <span>房间号</span>
+        <input id="code-input" type="text" maxlength="6" autocomplete="off" spellcheck="false" placeholder="留空则自动生成">
+      </label>
+    </div>
+
+    <fieldset class="strategy-fieldset">
+      <legend>信令中继</legend>
+      <label class="strategy">
+        <input type="radio" name="strategy" value="mqtt" checked>
+        <span><strong>MQTT（EMQX 公共 broker）</strong><em>国内最容易连通的选项，体量稍大</em></span>
+      </label>
+      <label class="strategy">
+        <input type="radio" name="strategy" value="nostr">
+        <span><strong>Nostr 中继</strong><em>中继数量最多，部分网络不通</em></span>
+      </label>
+      <label class="strategy">
+        <input type="radio" name="strategy" value="torrent">
+        <span><strong>BitTorrent Tracker</strong><em>最轻量，公共 tracker 常被墙</em></span>
+      </label>
+    </fieldset>
+
+    <div class="entry-actions">
+      <button id="create-btn" class="button" type="button">创建房间（我做房主）</button>
+      <button id="join-btn" class="button secondary" type="button">加入房间</button>
+    </div>
+
+    <details class="advanced" id="advanced">
+      <summary>高级：自定义中继 / TURN（连不上时用）</summary>
+      <p class="panel-note">留空即用公共默认值。TURN 是 P2P 打洞失败时的兜底通道，需要自己申请免费额度（例如 Open Relay、Metered）。</p>
+      <label class="field">
+        <span>自定义中继地址（每行一个）</span>
+        <textarea id="relay-urls" rows="2" spellcheck="false" placeholder="wss://broker.emqx.io:8084/mqtt"></textarea>
+      </label>
+      <div class="field-grid">
+        <label class="field"><span>TURN 地址</span><input id="turn-url" type="text" spellcheck="false" placeholder="turn:host:3478"></label>
+        <label class="field"><span>TURN 用户名</span><input id="turn-user" type="text" autocomplete="off"></label>
+      </div>
+      <label class="field"><span>TURN 密码</span><input id="turn-cred" type="password" autocomplete="off"></label>
+    </details>
+
+    <p class="status-line" id="entry-status" role="status"></p>
+  </section>
+
+  <!-- ============ 房间：棋盘与联机信息 ============ -->
+  <section id="room-panel" class="room-panel" hidden aria-label="对局">
+    <div class="room-bar">
+      <div class="room-chip"><span>房间</span><strong id="room-code">—</strong></div>
+      <button id="copy-link-btn" class="chip-button" type="button">复制邀请链接</button>
+      <div class="room-chip"><span>我的身份</span><strong id="role-text">—</strong></div>
+      <div class="room-chip net-chip"><span class="dot" id="net-dot" data-state="idle"></span><strong id="net-text">未连接</strong></div>
+    </div>
+
+    <div class="room-grid">
+      <div class="board-column">
+        <div class="board-shell">
+          <div class="board" id="board" role="grid" aria-label="十五路棋盘" aria-describedby="game-status"></div>
+        </div>
+        <p class="game-status" id="game-status" role="status">等待对手加入…</p>
+        <div class="board-actions">
+          <button id="restart-btn" class="button secondary" type="button">重新开始</button>
+          <button id="leave-btn" class="chip-button" type="button">离开房间</button>
+        </div>
+      </div>
+
+      <aside class="side-column">
+        <section class="side-block">
+          <h2 class="side-title">桌上的人</h2>
+          <ul class="player-list" id="player-list"></ul>
+        </section>
+        <section class="side-block">
+          <h2 class="side-title">对局日志</h2>
+          <ol class="log" id="log-list"></ol>
+        </section>
+        <form class="chat" id="chat-form">
+          <label class="visually-hidden" for="chat-input">聊天内容</label>
+          <input id="chat-input" type="text" maxlength="80" autocomplete="off" placeholder="说点什么，会同步给所有人">
+          <button class="button" type="submit">发送</button>
+        </form>
+      </aside>
+    </div>
+
+    <details class="diagnostics" id="diagnostics" open>
+      <summary>连接诊断（连不上时先看这里）</summary>
+      <div class="diag-actions">
+        <button id="ping-btn" class="chip-button" type="button">测延迟</button>
+        <button id="ice-btn" class="chip-button" type="button">检测 ICE 候选</button>
+        <button id="copy-diag-btn" class="chip-button" type="button">复制诊断信息</button>
+      </div>
+      <div class="diag-body" id="diag-body"></div>
+    </details>
+  </section>
+
+  <p class="footnote">
+    没有后端、没有数据库、没有第三方统计。房间号相同的人在浏览器之间直接建连，信令中继只看到「有人想连某个房间」，看不到棋盘内容。
+  </p>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <span>点对点联机 · 十五路五子棋</span>
+    <a href="https://github.com/Wangok123/lin-unity-workbench">源码</a>
+  </div>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
