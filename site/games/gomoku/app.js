@@ -53,7 +53,8 @@ const els = {
   logList: document.getElementById('log-list'),
   chatForm: document.getElementById('chat-form'),
   chatInput: document.getElementById('chat-input'),
-  diagMount: document.getElementById('diagnostics-mount')
+  diagMount: document.getElementById('diagnostics-mount'),
+  browserNotice: document.getElementById('browser-notice')
 }
 
 const app = {
@@ -76,7 +77,10 @@ const app = {
   lastSnapshotAt: 0,
   joinRetryTimer: null,
   busy: false,
-  stopped: false
+  stopped: false,
+  // 连接失败/信令错误，展示在诊断面板里
+  errors: [],
+  turnServers: null
 }
 
 let sendCmd = () => Promise.resolve()
@@ -84,6 +88,29 @@ let sendSnap = () => Promise.resolve()
 let getStrategyId = () => DEFAULT_STRATEGY
 
 // ---------------------------------------------------------------- 入口表单
+
+function recordError(text) {
+  const line = `${timeLabel()} ${text}`
+  app.errors.push(line)
+  if (app.errors.length > 10) app.errors.shift()
+  console.warn('[联机]', text)
+  if (app.role === 'host') hostLog(`连接失败：${text}`)
+}
+
+/** 微信内置浏览器 / 不支持 WebRTC 时给一句明确提示。 */
+function checkBrowser() {
+  if (!els.browserNotice) return
+  const inWeChat = /MicroMessenger/i.test(navigator.userAgent)
+  let message = ''
+  if (typeof RTCPeerConnection === 'undefined') {
+    message = '当前浏览器不支持 WebRTC，无法联机。请换用系统浏览器（Chrome / Edge / Safari）打开。'
+  } else if (inWeChat) {
+    message = '你在微信内置浏览器里，部分机型会限制 WebRTC。如果一直连不上，点右上角「…」→「在浏览器打开」。'
+  }
+  if (!message) return
+  els.browserNotice.textContent = message
+  els.browserNotice.hidden = false
+}
 
 function setEntryStatus(text, isError = false) {
   els.entryStatus.textContent = text
@@ -516,13 +543,16 @@ async function startRoom(role, code) {
     savePrefs()
 
     setEntryStatus(`正在加载 ${STRATEGIES[app.strategyId].label} 联机模块…`)
+    app.turnServers = readTurnServers({url: els.turnUrl, username: els.turnUser, credential: els.turnCred})
+    app.errors = []
     let transport
     try {
       transport = await joinTransport({
         strategyId: app.strategyId,
         roomId: code,
         relayUrls: readRelayUrls(els.relayUrls),
-        turnServers: readTurnServers({url: els.turnUrl, username: els.turnUser, credential: els.turnCred})
+        turnServers: app.turnServers,
+        onJoinError: (details) => recordError(details?.error || '与对端建立连接失败')
       })
     } catch (error) {
       console.error(error)
@@ -567,7 +597,9 @@ async function startRoom(role, code) {
       getRole: () => app.role,
       getRoomId: () => app.roomId,
       getSelfId: () => app.selfId,
-      getHostId: () => app.hostId
+      getHostId: () => app.hostId,
+      getTurnServers: () => app.turnServers,
+      getErrors: () => app.errors
     })
     setEntryStatus('')
   } finally {
@@ -666,6 +698,7 @@ function bindEvents() {
 
 function boot() {
   initBoard()
+  checkBrowser()
   getStrategyId = renderStrategyPicker(els.strategyFieldset, {selectedId: initialStrategy()})
   loadPrefs()
   bindEvents()

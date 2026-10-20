@@ -156,6 +156,18 @@ main { flex: 1; }
 .status-line { min-height: 24px; margin: 14px 0 0; color: var(--muted); font-size: 13px; }
 .status-line.is-error { color: var(--coral); font-weight: 700; }
 
+/* ---------- 提示条 ---------- */
+.notice {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 2px solid var(--yellow);
+  border-left-width: 6px;
+  background: #fff8e1;
+  color: #6b4c00;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* ---------- 页脚 ---------- */
 .footnote { margin: 22px 0 0; color: var(--muted); font-size: 12px; }
 .foot { margin-top: 26px; border-top: 1px solid var(--line); background: var(--paper-2); }

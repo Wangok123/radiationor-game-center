@@ -96,6 +96,39 @@ powershell -ExecutionPolicy Bypass -File scripts/build-game-vendor.ps1
 推到 `main` 即可：`.github/workflows/deploy.yml` 直接把 `site/` 上传成 Pages 产物，
 没有构建步骤，也不需要 Node。仓库设置里 Pages 的 Source 选 **GitHub Actions**。
 
+## 连不上时的排查顺序
+
+游戏页底部「连接诊断」会显示：版本、房间、角色、双方 peer、信令、WebRTC 支持、网络自检结果、
+中继状态、对端连接状态。按下面顺序看：
+
+1. **两端版本号必须一致**（诊断第一行，现在是 `v3 · 2026-10-20`）。
+   版本不一致说明有一端还是缓存的旧页面，让对方强制刷新或重新打开邀请链接。
+2. **微信内置浏览器**可能限制 WebRTC。如果页面顶部出现黄条提示，点右上角「…」→「在浏览器打开」。
+3. **网络自检**：点一下，几秒出结果。
+   - 出现 `srflx` 或 `relay` → 这台设备能打洞，问题多半在对端或双方 NAT；
+   - 只有 `host` → 这台设备的网络无法跨网络直连，必须配 TURN。
+4. **换信令**：MQTT 不通时试试页面上的 Nostr / BitTorrent（不同网络下可达性不一样）。
+5. **TURN**：在「高级」里填地址/用户名/密码。实测免费公共 TURN（openrelay）在国内不通，
+   比较可靠的是自己用小服务器跑 coturn。
+
+补充：手机 5G/移动网络多为对称 NAT，和家里宽带互连比「宽带↔宽带」难得多；同一 WiFi 下必然能连，
+可以用来确认代码本身没问题。
+
+## 已知的默认 ICE 配置
+
+Trystero 自带的默认 STUN 是 `stun.l.google.com` 和 `stun.cloudflare.com`，前者在国内基本不通，
+会让 ICE 收集一直等超时。本站改成实测可用的国内 STUN（`assets/room.js` 里的 `DEFAULT_STUN_URLS`）：
+
+```
+stun:stun.miwifi.com:3478
+stun:stun.chat.bilibili.com:3478
+stun:stun.hitv.com:3478
+stun:stun.cdnbye.com:3478
+stun:stun.cloudflare.com:3478
+```
+
+不通的服务器不要往列表里加：ICE 会一直等它超时，反而拖慢连接。
+
 ## 边界
 
 - P2P 打洞在部分网络会失败，需要自备 TURN；没有 TURN 时成功率取决于双方 NAT。
