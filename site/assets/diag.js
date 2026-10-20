@@ -71,7 +71,10 @@ export function mountDiagnostics(root, context) {
     const hostId = context.getHostId()
     const errors = context.getErrors?.() || []
 
-    const relayRows = Object.entries(relaySockets(context.getModule()))
+    const relayEntries = Object.entries(relaySockets(context.getModule()))
+    const relaysUp = relayEntries.filter(([, socket]) => socket?.readyState === 1).length
+
+    const relayRows = relayEntries
       .map(([url, socket]) => {
         const state = describeSocket(socket)
         const cls = socket?.readyState === 1 ? 'ok' : 'bad'
@@ -110,11 +113,12 @@ export function mountDiagnostics(root, context) {
         <tr><th>角色</th><td>${context.getRole() === 'host' ? '房主（权威端）' : '客户端'}</td></tr>
         <tr><th>我的 peer</th><td>${escapeHtml(shortId(context.getSelfId()))}</td></tr>
         <tr><th>房主 peer</th><td>${hostId ? escapeHtml(shortId(hostId)) : '<span class="bad">还没收到房主的任何消息</span>'}</td></tr>
-        <tr><th>信令</th><td>${escapeHtml(STRATEGIES[strategyId]?.label || strategyId)}</td></tr>
+        <tr><th>信令</th><td>${escapeHtml(STRATEGIES[strategyId]?.label || strategyId)}（${relaysUp}/${relayEntries.length || 4} 中继已连接）</td></tr>
         <tr><th>WebRTC</th><td>${webRtcSupported() ? '<span class="ok">支持</span>' : '<span class="bad">不支持</span>'}</td></tr>
         <tr><th>网络自检</th><td>${netcheckText}</td></tr>
       </table>
       ${lanHint()}
+      ${relaysUp === 0 ? '<p class="hint bad">信令中继一个都没连上：别人找不到你，你也找不到别人。先解决网络/DNS，或换一个中继策略。</p>' : ''}
       <h3>中继连接（信令）</h3>
       <table><tr><th>地址</th><th>状态</th></tr>${relayRows}</table>
       <h3>对端连接</h3>

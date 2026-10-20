@@ -10,7 +10,7 @@
 
 import {EMPTY, BLACK, WHITE, createBoard, applyMove, other, SIZE} from './rules.js'
 import {cleanName, normalizeCode, randomCode, copyText, timeLabel, readStore, writeStore} from '../../assets/util.js'
-import {joinTransport, STRATEGIES, DEFAULT_STRATEGY} from '../../assets/room.js'
+import {joinTransport, relaySockets, BUILD, STRATEGIES, DEFAULT_STRATEGY} from '../../assets/room.js'
 import {renderStrategyPicker, readRelayUrls, readTurnServers} from '../../assets/room-ui.js'
 import {mountDiagnostics} from '../../assets/diag.js'
 
@@ -54,7 +54,9 @@ const els = {
   chatForm: document.getElementById('chat-form'),
   chatInput: document.getElementById('chat-input'),
   diagMount: document.getElementById('diagnostics-mount'),
-  browserNotice: document.getElementById('browser-notice')
+  browserNotice: document.getElementById('browser-notice'),
+  connectHint: document.getElementById('connect-hint'),
+  buildText: document.getElementById('build-text')
 }
 
 const app = {
@@ -76,11 +78,13 @@ const app = {
   // 运行期信息
   lastSnapshotAt: 0,
   joinRetryTimer: null,
+  hintTimer: null,
   busy: false,
   stopped: false,
   // 连接失败/信令错误，展示在诊断面板里
   errors: [],
-  turnServers: null
+  turnServers: null,
+  joinedAt: 0
 }
 
 let sendCmd = () => Promise.resolve()
@@ -95,6 +99,37 @@ function recordError(text) {
   if (app.errors.length > 10) app.errors.shift()
   console.warn('[联机]', text)
   if (app.role === 'host') hostLog(`连接失败：${text}`)
+}
+
+/** 定时更新「连不上」的原因提示：中继没连上 / 还没发现对方。 */
+function updateConnectHint() {
+  if (!els.connectHint || !app.room) return
+  const sockets = Object.values(relaySockets(app.module))
+  const relaysUp = sockets.filter((socket) => socket.readyState === 1).length
+  const peers = Object.keys(app.room.getPeers()).length
+  const waited = Date.now() - app.joinedAt
+  let message = ''
+
+  if (app.stopped) {
+    message = ''
+  } else if (app.role === 'host' && relaysUp === 0) {
+    message = `信令中继一个都没连上（0/${sockets.length || 4}），朋友找不到你。检查网络，或换一个中继（Nostr / BitTorrent）重开房间。`
+  } else if (app.role !== 'host' && relaysUp === 0) {
+    message = `信令中继一个都没连上（0/${sockets.length || 4}），收不到房主的房间信息。检查网络，或换一个中继再进。`
+  } else if (app.role !== 'host' && !app.hostId && peers === 0 && waited > 10000) {
+    message = '还没收到房主的任何消息：确认房主页面还开着、两端版本号一致；如果两边的「网络自检」只有 host，就需要配 TURN。'
+  } else if (app.role === 'host' && peers === 0 && waited > 10000) {
+    message = '中继已连上，但还没人加入。确认朋友用的是同一个房间号或邀请链接（房间号区分大小写之外无特殊字符）。'
+  }
+
+  els.connectHint.textContent = message
+  els.connectHint.hidden = !message
+}
+
+function startConnectHint() {
+  app.joinedAt = Date.now()
+  clearInterval(app.hintTimer)
+  app.hintTimer = setInterval(updateConnectHint, 2000)
 }
 
 /** 微信内置浏览器 / 不支持 WebRTC 时给一句明确提示。 */
@@ -590,6 +625,7 @@ async function startRoom(role, code) {
 
     showRoom()
     render()
+    startConnectHint()
     app.diag = mountDiagnostics(els.diagMount, {
       getRoom: () => app.room,
       getModule: () => app.module,
@@ -609,6 +645,7 @@ async function startRoom(role, code) {
 
 function leaveRoom() {
   stopJoinRetry()
+  clearInterval(app.hintTimer)
   app.diag?.stop()
   app.diag = null
   try {
@@ -699,6 +736,7 @@ function bindEvents() {
 function boot() {
   initBoard()
   checkBrowser()
+  if (els.buildText) els.buildText.textContent = BUILD
   getStrategyId = renderStrategyPicker(els.strategyFieldset, {selectedId: initialStrategy()})
   loadPrefs()
   bindEvents()
