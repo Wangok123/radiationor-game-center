@@ -1,67 +1,123 @@
-/* 房间界面共用样式：房间条、棋盘区布局、玩家列表、日志、聊天、连接诊断。
-   棋盘/棋子这类具体的画面放在各游戏的样式文件里。 */
+/* ============================================================
+   房间界面共用样式：房间条、棋盘布局、玩家、日志、聊天、诊断
+   具体棋盘画法放在各游戏的样式文件里
+   ============================================================ */
 
-.room-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+.room-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 18px; }
 .room-chip {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 7px 12px; border: 2px solid var(--ink); background: var(--paper); font-size: 13px;
+  padding: 8px 14px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(255, 255, 255, .03);
+  font-size: 13px;
 }
-.room-chip span { color: var(--muted); }
-.room-chip strong { font: 900 14px/1.2 var(--mono); letter-spacing: .04em; }
-.net-chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
-.net-chip .dot[data-state="open"] { background: #1f8a5b; }
-.net-chip .dot[data-state="busy"] { background: var(--yellow); }
-.net-chip .dot[data-state="bad"] { background: var(--coral); }
+.room-chip span { color: var(--text-faint); }
+.room-chip strong {
+  color: var(--text);
+  font: 800 13px/1.2 var(--mono);
+  letter-spacing: .04em;
+}
+.net-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+.net-chip .dot[data-state="open"] { background: var(--ok); box-shadow: 0 0 10px rgba(92, 230, 143, .85); }
+.net-chip .dot[data-state="busy"] { background: var(--amber); box-shadow: 0 0 8px rgba(255, 199, 90, .6); }
+.net-chip .dot[data-state="bad"] { background: var(--danger); box-shadow: 0 0 8px rgba(255, 128, 128, .6); }
 
-.room-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: start; }
+.room-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
 .board-column { min-width: 0; }
 .board-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
-.game-status { margin: 16px 0 12px; font-size: 15px; font-weight: 700; }
-.game-status.is-warn { color: var(--coral); }
+.game-status { margin: 14px 0 12px; font-size: 15px; font-weight: 700; color: var(--text); }
+.game-status.is-warn { color: var(--amber); }
 
-.side-column { display: grid; gap: 18px; }
-.side-block { border: 2px solid var(--ink); background: var(--paper); padding: 14px 16px; }
-.side-title { margin: 0 0 10px; font-size: 15px; font-weight: 900; }
+.side-column { display: grid; gap: 14px; }
+.side-block {
+  padding: 16px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+}
+.side-title {
+  margin: 0 0 10px;
+  color: var(--text-faint);
+  font-size: 12px; font-weight: 800; letter-spacing: .06em;
+}
 
-.player-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
-.player-list li { display: flex; align-items: center; gap: 8px; }
-.player-list .stone-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #555; flex: 0 0 auto; }
-.player-list .stone-dot.black { background: #1f2937; }
-.player-list .stone-dot.white { background: #fff; }
-.player-list .seat-tag { margin-left: auto; color: var(--muted); font-size: 12px; }
-.player-list .me { font-weight: 900; }
-.player-list .offline { color: var(--coral); }
+.player-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; font-size: 14px; }
+.player-list li { display: flex; align-items: center; gap: 9px; }
+.player-list .stone-dot {
+  width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
+}
+.player-list .stone-dot.black { background: radial-gradient(circle at 35% 30%, #4b5563, #0b0f14 72%); }
+.player-list .stone-dot.white { background: radial-gradient(circle at 35% 30%, #ffffff, #c3ccd6 78%); }
+.player-list .seat-tag { margin-left: auto; color: var(--text-faint); font: 700 11px/1.5 var(--mono); }
+.player-list .me { color: var(--lime); font-weight: 800; }
+.player-list .offline { color: var(--danger); }
 
-.log { margin: 0; padding-left: 20px; max-height: 190px; overflow: auto; color: var(--muted); font-size: 13px; }
-.log li { margin-bottom: 4px; }
+.log {
+  margin: 0; padding-left: 16px;
+  max-height: 190px; overflow: auto;
+  color: var(--text-dim); font-size: 13px;
+}
+.log li { margin-bottom: 5px; }
 .log li:last-child { margin-bottom: 0; }
+.log li::marker { color: var(--text-faint); }
 
 .chat { display: flex; gap: 8px; }
 .chat input {
-  flex: 1; min-width: 0; padding: 9px 11px;
-  border: 2px solid var(--line); background: #fbfcfc; font-size: 14px;
+  flex: 1; min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  background: rgba(0, 0, 0, .3);
+  color: var(--text); font-size: 14px;
 }
-.chat .button { min-height: 40px; padding: 8px 14px; }
+.chat input::placeholder { color: var(--text-faint); }
+.chat input:focus {
+  outline: none;
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px rgba(182, 255, 69, .15);
+}
+.chat .button { min-height: 42px; padding: 8px 16px; box-shadow: none; }
 
 /* ---------- 连接诊断 ---------- */
-.diagnostics { margin-top: 22px; border: 2px solid var(--ink); background: var(--paper-2); padding: 14px 18px; }
-.diagnostics summary { cursor: pointer; font-weight: 900; }
-.diag-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-.diag-body { font: 500 12px/1.7 var(--mono); color: var(--ink); }
+.diagnostics {
+  margin-top: 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: rgba(0, 0, 0, .25);
+}
+.diagnostics summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-weight: 800; font-size: 14px;
+}
+.diagnostics summary:hover { color: var(--text); }
+.diagnostics[open] summary { margin-bottom: 4px; }
+.diag-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.diag-body { font: 500 12px/1.75 var(--mono); color: var(--text-dim); }
 .diag-body h3 {
-  margin: 14px 0 6px; font: 900 12px/1.4 var(--mono);
-  color: var(--coral); text-transform: uppercase;
+  margin: 16px 0 7px;
+  color: var(--lime);
+  font: 800 11px/1.4 var(--mono);
+  letter-spacing: .16em; text-transform: uppercase;
 }
 .diag-body table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.diag-body th, .diag-body td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-.diag-body th { color: var(--muted); font-weight: 700; }
-.diag-body .ok { color: #1f8a5b; font-weight: 700; }
-.diag-body .bad { color: var(--coral); font-weight: 700; }
-.diag-body .diag-errors { margin: 0; padding-left: 18px; color: var(--coral); font-size: 12px; }
+.diag-body th, .diag-body td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left; vertical-align: top;
+}
+.diag-body th { color: var(--text-faint); font-weight: 700; white-space: nowrap; }
+.diag-body .ok { color: var(--ok); font-weight: 700; }
+.diag-body .bad { color: var(--danger); font-weight: 700; }
 .diag-body .hint {
-  margin: 8px 0; padding: 8px 10px;
-  border-left: 3px solid var(--yellow); background: #fff8e1; font-size: 12px;
+  margin: 10px 0; padding: 9px 11px;
+  border-left: 3px solid var(--amber); border-radius: 9px;
+  background: rgba(255, 199, 90, .08);
+  color: #ffdca8; font-size: 12px;
+}
+.diag-body .diag-errors {
+  margin: 0; padding-left: 18px;
+  color: var(--danger); font-size: 12px;
 }
 
 @media (max-width: 880px) {

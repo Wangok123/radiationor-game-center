@@ -256,10 +256,16 @@ async function main() {
 
     console.log('[7] 重新开始')
     await guest.cdp.evaluate(`document.getElementById('restart-btn').click()`)
-    await sleep(1500)
-    if (JSON.parse(await host.cdp.evaluate(SNAP)).stones !== 0) problems.push('重新开始后房主棋盘没清空')
-    if (JSON.parse(await guest.cdp.evaluate(SNAP)).stones !== 0) problems.push('重新开始后客人棋盘没清空')
-    console.log('    两端棋盘已清空')
+    // 中继模式多一跳，轮询等两边都清空
+    let cleared = false
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await sleep(500)
+      const hostStones = JSON.parse(await host.cdp.evaluate(SNAP)).stones
+      const guestStones = JSON.parse(await guest.cdp.evaluate(SNAP)).stones
+      if (hostStones === 0 && guestStones === 0) { cleared = true; break }
+    }
+    if (!cleared) problems.push('重新开始后棋盘没清空')
+    else console.log('    两端棋盘已清空')
 
     console.log('[8] 房主离开，客人应收到提示')
     await host.cdp.send('Page.navigate', {url: 'about:blank'})

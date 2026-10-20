@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#111820">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#080b10">
 <title>五子棋 · RadiationOr 游戏中心</title>
 <meta name="description" content="无服务器联机五子棋：房主的浏览器负责判定，棋盘数据通过 WebRTC 在玩家之间直传，房间靠公共中继牵线。">
 <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
@@ -18,7 +19,7 @@
   <div class="wrap topbar-inner">
     <a class="brand" href="../../" aria-label="RadiationOr 游戏中心首页">
       <span class="brand-mark" aria-hidden="true">RO</span>
-      <span class="brand-text"><strong>RadiationOr</strong><em>游戏中心</em></span>
+      <span class="brand-text"><strong>RadiationOr</strong><em>Game Center</em></span>
     </a>
     <nav class="nav" aria-label="主导航">
       <a href="../../">游戏</a>
@@ -39,7 +40,8 @@
   </div>
 
   <!-- ============ 入口：房间设置 ============ -->
-  <section class="panel entry-panel" id="entry-panel" aria-labelledby="entry-title">
+  <div class="entry-layout" id="entry-panel">
+    <section class="panel" aria-labelledby="entry-title">
     <h2 class="panel-title" id="entry-title">开一局</h2>
     <p class="panel-note">房主的浏览器负责判定，其他人只要房间号。同一个房间号只能有一个房主，朋友请点「加入房间」或用你发的邀请链接。</p>
 
@@ -81,8 +83,28 @@
       <label class="field"><span>TURN 密码</span><input id="turn-cred" type="password" autocomplete="off"></label>
     </details>
 
-    <p class="status-line" id="entry-status" role="status"></p>
-  </section>
+      <p class="status-line" id="entry-status" role="status"></p>
+    </section>
+
+    <aside class="entry-aside">
+      <section class="info-block">
+        <h2 class="info-title">玩法</h2>
+        <ul class="info-list">
+          <li>15×15 棋盘，横、竖、斜任意方向连成五子即胜。</li>
+          <li>房主执黑先手，之后轮流落子。</li>
+          <li>棋盘下满且没人连成五子，判和棋。</li>
+        </ul>
+      </section>
+      <section class="info-block">
+        <h2 class="info-title">小贴士</h2>
+        <ul class="info-list">
+          <li>同一个房间号只能有一个房主，朋友点「加入房间」或用邀请链接。</li>
+          <li>刷新页面不会丢棋局，会回到原来的座位。</li>
+          <li>连不上时先看页面底部的「连接诊断」。</li>
+        </ul>
+      </section>
+    </aside>
+  </div>
 
   <!-- ============ 房间：棋盘与联机信息 ============ -->
   <section id="room-panel" class="room-panel" hidden aria-label="对局">
