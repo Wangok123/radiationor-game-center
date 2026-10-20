@@ -10,6 +10,7 @@
 
 - 线上地址：<https://wangok123.github.io/radiationor-game-center/>
 - 目前有：五子棋（15×15，2 人，回合制）
+- **下一步做什么：见 [ROADMAP.md](ROADMAP.md)**（每完成一项就更新它）
 
 ## 目录
 
