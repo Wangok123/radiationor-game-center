@@ -7,6 +7,7 @@
 | `mqtt.js` | `@trystero-p2p/mqtt` 0.26.0 | 用 MQTT 公共 broker（EMQX / HiveMQ / shiftr / mosquitto）交换 WebRTC 信令 | ~400 KB |
 | `nostr.js` | `@trystero-p2p/nostr` 0.26.0 | 用 Nostr 中继交换信令 | ~74 KB |
 | `torrent.js` | `@trystero-p2p/torrent` 0.26.0 | 用 BitTorrent tracker 交换信令 | ~64 KB |
+| `relay.js` | `mqtt` 5.16.1 的浏览器 ESM 构建 | 中继模式：直接把对局消息发到公共 MQTT broker（走 assets/transport-relay.js） | ~333 KB |
 
 `assets/room.js` 会根据页面上选中的策略**按需动态 import**，所以只会下载其中一个；所有游戏共用同一份。
 

@@ -2,6 +2,37 @@
 // 各个游戏的入口面板只要放空容器，这里负责填充和读取。
 
 import {STRATEGIES, DEFAULT_STRATEGY} from './room.js'
+import {TRANSPORTS, DEFAULT_TRANSPORT} from './transport.js'
+
+/** 把「连接方式」单选渲染进 <fieldset>，返回读取当前选择的函数。 */
+export function renderTransportPicker(fieldset, {selectedId = DEFAULT_TRANSPORT} = {}) {
+  fieldset.replaceChildren()
+  for (const transport of Object.values(TRANSPORTS)) {
+    const label = document.createElement('label')
+    label.className = 'strategy'
+
+    const input = document.createElement('input')
+    input.type = 'radio'
+    input.name = 'transport'
+    input.value = transport.id
+    input.checked = transport.id === selectedId
+
+    const text = document.createElement('span')
+    const title = document.createElement('strong')
+    title.textContent = transport.title
+    const note = document.createElement('em')
+    note.textContent = transport.note
+    text.append(title, note)
+
+    label.append(input, text)
+    fieldset.append(label)
+  }
+
+  return () => {
+    const checked = fieldset.querySelector('input[name="transport"]:checked')
+    return checked ? checked.value : DEFAULT_TRANSPORT
+  }
+}
 
 /** 把信令策略单选渲染进 <fieldset>，返回读取当前选择的函数。 */
 export function renderStrategyPicker(fieldset, {selectedId = DEFAULT_STRATEGY} = {}) {

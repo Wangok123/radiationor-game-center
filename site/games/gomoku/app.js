@@ -10,13 +10,15 @@
 
 import {EMPTY, BLACK, WHITE, createBoard, applyMove, other, SIZE} from './rules.js'
 import {cleanName, normalizeCode, randomCode, copyText, timeLabel, readStore, writeStore} from '../../assets/util.js'
-import {joinTransport, relaySockets, BUILD, STRATEGIES, DEFAULT_STRATEGY} from '../../assets/room.js'
-import {renderStrategyPicker, readRelayUrls, readTurnServers} from '../../assets/room-ui.js'
+import {BUILD, STRATEGIES, DEFAULT_STRATEGY} from '../../assets/room.js'
+import {renderStrategyPicker, renderTransportPicker, readRelayUrls, readTurnServers} from '../../assets/room-ui.js'
+import {connect, TRANSPORTS, DEFAULT_TRANSPORT, transportById} from '../../assets/transport.js'
 import {mountDiagnostics} from '../../assets/diag.js'
 
 const STORAGE = {
   name: 'rogc:name',
   strategy: 'rogc:strategy',
+  transport: 'rogc:transport',
   relay: 'rogc:relay',
   turn: 'rogc:turn'
 }
@@ -33,6 +35,7 @@ const els = {
   nameInput: document.getElementById('name-input'),
   codeInput: document.getElementById('code-input'),
   strategyFieldset: document.getElementById('strategy-fieldset'),
+  transportFieldset: document.getElementById('transport-fieldset'),
   relayUrls: document.getElementById('relay-urls'),
   turnUrl: document.getElementById('turn-url'),
   turnUser: document.getElementById('turn-user'),
@@ -63,9 +66,9 @@ const app = {
   role: null, // 'host' | 'guest'
   roomId: null,
   strategyId: DEFAULT_STRATEGY,
+  transportId: DEFAULT_TRANSPORT,
   name: '',
-  room: null,
-  module: null,
+  channel: null,
   selfId: null,
   hostId: null,
   diag: null,
@@ -90,6 +93,7 @@ const app = {
 let sendCmd = () => Promise.resolve()
 let sendSnap = () => Promise.resolve()
 let getStrategyId = () => DEFAULT_STRATEGY
+let getTransportId = () => DEFAULT_TRANSPORT
 
 // ---------------------------------------------------------------- 入口表单
 
@@ -103,23 +107,32 @@ function recordError(text) {
 
 /** 定时更新「连不上」的原因提示：中继没连上 / 还没发现对方。 */
 function updateConnectHint() {
-  if (!els.connectHint || !app.room) return
-  const sockets = Object.values(relaySockets(app.module))
-  const relaysUp = sockets.filter((socket) => socket.readyState === 1).length
-  const peers = Object.keys(app.room.getPeers()).length
+  if (!els.connectHint || !app.channel) return
+  const relays = app.channel.relayStates()
+  const relaysUp = relays.filter((entry) => entry.ok).length
+  const peers = app.channel.peers().length
   const waited = Date.now() - app.joinedAt
+  const relayMode = app.transportId === 'relay'
   let message = ''
 
   if (app.stopped) {
     message = ''
   } else if (app.role === 'host' && relaysUp === 0) {
-    message = `信令中继一个都没连上（0/${sockets.length || 4}），朋友找不到你。检查网络，或换一个中继（Nostr / BitTorrent）重开房间。`
+    message = relayMode
+      ? '中继 broker 一个都没连上，朋友找不到你。检查网络，或换个连接方式重开房间。'
+      : '信令中继一个都没连上，朋友找不到你。换一个信令策略，或改用中继模式。'
   } else if (app.role !== 'host' && relaysUp === 0) {
-    message = `信令中继一个都没连上（0/${sockets.length || 4}），收不到房主的房间信息。检查网络，或换一个中继再进。`
+    message = relayMode
+      ? '中继 broker 一个都没连上，收不到房主的消息。检查网络，或换个连接方式再进。'
+      : '信令中继一个都没连上，收不到房主的房间信息。换一个信令策略，或改用中继模式。'
   } else if (app.role !== 'host' && !app.hostId && peers === 0 && waited > 10000) {
-    message = '还没收到房主的任何消息：确认房主页面还开着、两端版本号一致；如果两边的「网络自检」只有 host，就需要配 TURN。'
+    message = relayMode
+      ? '中继已连上，但还没收到房主的消息：确认房主页面还开着、两端房间号和版本号一致。'
+      : '还没收到房主的任何消息：确认房主页面还开着、两端版本号一致；直连打不通可以改用中继模式。'
   } else if (app.role === 'host' && peers === 0 && waited > 10000) {
-    message = '中继已连上，但还没人加入。确认朋友用的是同一个房间号或邀请链接（房间号区分大小写之外无特殊字符）。'
+    message = relayMode
+      ? '中继已经连上，但还没人加入。确认朋友用的是同一个房间号或邀请链接。'
+      : '信令已经连上，但还没人加入。确认朋友用的是同一个房间号或邀请链接。'
   }
 
   els.connectHint.textContent = message
@@ -138,9 +151,9 @@ function checkBrowser() {
   const inWeChat = /MicroMessenger/i.test(navigator.userAgent)
   let message = ''
   if (typeof RTCPeerConnection === 'undefined') {
-    message = '当前浏览器不支持 WebRTC，无法联机。请换用系统浏览器（Chrome / Edge / Safari）打开。'
+    message = '当前浏览器不支持 WebRTC：中继模式仍然可以正常联机（直连模式不可用）。'
   } else if (inWeChat) {
-    message = '你在微信内置浏览器里，部分机型会限制 WebRTC。如果一直连不上，点右上角「…」→「在浏览器打开」。'
+    message = '你在微信内置浏览器里：中继模式不受影响；如果切到直连模式连不上，请用系统浏览器打开。'
   }
   if (!message) return
   els.browserNotice.textContent = message
@@ -152,9 +165,18 @@ function setEntryStatus(text, isError = false) {
   els.entryStatus.classList.toggle('is-error', isError)
 }
 
+/** 从 URL 与本地存储里决定默认的连接方式。 */
+function initialTransport() {
+  const fromUrl = new URLSearchParams(location.search).get('transport')
+  if (fromUrl && TRANSPORTS[fromUrl]) return fromUrl
+  const saved = readStore(STORAGE.transport)
+  return TRANSPORTS[saved] ? saved : DEFAULT_TRANSPORT
+}
+
 function savePrefs() {
   writeStore(STORAGE.name, app.name || els.nameInput.value || '')
   writeStore(STORAGE.strategy, app.strategyId || getStrategyId())
+  writeStore(STORAGE.transport, app.transportId || getTransportId())
   writeStore(STORAGE.relay, els.relayUrls.value)
   writeStore(STORAGE.turn, [els.turnUrl.value, els.turnUser.value, els.turnCred.value].join('\n'))
 }
@@ -247,16 +269,16 @@ function render() {
   if (!view) return
   const {game} = view
   const seat = mySeat()
-  const peers = app.room ? Object.keys(app.room.getPeers()).length : 0
-  const strategyLabel = STRATEGIES[app.strategyId]?.label || '—'
+  const peers = app.channel ? app.channel.peers().length : 0
+  const modeLabel = transportById(app.transportId).label
 
   els.roomCode.textContent = app.roomId || '—'
   els.roleText.textContent = app.role === 'host'
     ? '房主 / 黑棋'
     : seat === BLACK ? '玩家 / 黑棋' : seat === WHITE ? '玩家 / 白棋' : '观战'
 
-  const anyOpen = Object.values(app.module?.getRelaySockets?.() || {}).some((socket) => socket.readyState === 1)
-  els.netText.textContent = `${strategyLabel} · ${peers + 1} 人在线`
+  const anyOpen = Boolean(app.channel?.relayStates().some((entry) => entry.ok))
+  els.netText.textContent = `${modeLabel} · ${peers + 1} 人在线`
   els.netDot.dataset.state = app.stopped ? 'bad' : anyOpen ? 'open' : peers > 0 || app.role === 'host' ? 'busy' : 'idle'
 
   paintBoard(game)
@@ -561,7 +583,7 @@ function stopJoinRetry() {
 function startJoinRetry() {
   stopJoinRetry()
   app.joinRetryTimer = setInterval(() => {
-    if (app.stopped || !app.room) return
+    if (app.stopped || !app.channel) return
     if (Date.now() - app.lastSnapshotAt > 5000) sendCmd({t: 'join', name: app.name})
   }, 2500)
 }
@@ -572,6 +594,7 @@ async function startRoom(role, code) {
   try {
     app.name = cleanName(els.nameInput.value)
     app.strategyId = getStrategyId()
+    app.transportId = getTransportId()
     app.role = role
     app.roomId = code
     app.stopped = false
@@ -580,14 +603,19 @@ async function startRoom(role, code) {
     setEntryStatus(`正在加载 ${STRATEGIES[app.strategyId].label} 联机模块…`)
     app.turnServers = readTurnServers({url: els.turnUrl, username: els.turnUser, credential: els.turnCred})
     app.errors = []
-    let transport
+    let channel
     try {
-      transport = await joinTransport({
-        strategyId: app.strategyId,
+      channel = await connect({
+        transportId: app.transportId,
         roomId: code,
+        strategyId: app.strategyId,
         relayUrls: readRelayUrls(els.relayUrls),
         turnServers: app.turnServers,
-        onJoinError: (details) => recordError(details?.error || '与对端建立连接失败')
+        onCmd: onCmdMessage,
+        onSnap: onSnapMessage,
+        onPeerJoin,
+        onPeerLeave,
+        onError: (message) => recordError(message)
       })
     } catch (error) {
       console.error(error)
@@ -596,18 +624,10 @@ async function startRoom(role, code) {
       return
     }
 
-    app.room = transport.room
-    app.module = transport.module
-    app.selfId = transport.selfId
-
-    const cmd = app.room.makeAction('cmd')
-    const snap = app.room.makeAction('snap')
-    sendCmd = cmd.send
-    sendSnap = snap.send
-    cmd.onMessage = onCmdMessage
-    snap.onMessage = onSnapMessage
-    app.room.onPeerJoin = onPeerJoin
-    app.room.onPeerLeave = onPeerLeave
+    app.channel = channel
+    app.selfId = channel.selfId
+    sendCmd = (data, options) => app.channel.sendCmd(data, options)
+    sendSnap = (data) => app.channel.sendSnap(data)
 
     if (role === 'host') {
       app.game = newGame()
@@ -627,8 +647,7 @@ async function startRoom(role, code) {
     render()
     startConnectHint()
     app.diag = mountDiagnostics(els.diagMount, {
-      getRoom: () => app.room,
-      getModule: () => app.module,
+      getChannel: () => app.channel,
       getStrategyId: () => app.strategyId,
       getRole: () => app.role,
       getRoomId: () => app.roomId,
@@ -643,13 +662,13 @@ async function startRoom(role, code) {
   }
 }
 
-function leaveRoom() {
+async function leaveRoom() {
   stopJoinRetry()
   clearInterval(app.hintTimer)
   app.diag?.stop()
   app.diag = null
   try {
-    app.room?.leave()
+    await app.channel?.leave()
   } catch {
     /* 已经断开就忽略 */
   }
@@ -679,7 +698,8 @@ function onCellClick(index) {
 
 function inviteUrl() {
   const base = `${location.origin}${location.pathname.replace(/index\.html$/, '')}`
-  return `${base}?room=${encodeURIComponent(app.roomId || '')}&relay=${app.strategyId}`
+  const params = new URLSearchParams({room: app.roomId || '', relay: app.strategyId, transport: app.transportId})
+  return `${base}?${params}`
 }
 
 // ---------------------------------------------------------------- 启动
@@ -737,7 +757,19 @@ function boot() {
   initBoard()
   checkBrowser()
   if (els.buildText) els.buildText.textContent = BUILD
+  getTransportId = renderTransportPicker(els.transportFieldset, {selectedId: initialTransport()})
   getStrategyId = renderStrategyPicker(els.strategyFieldset, {selectedId: initialStrategy()})
+
+  const syncTransportUi = () => {
+    const isRelay = getTransportId() === 'relay'
+    els.strategyFieldset.hidden = isRelay
+    const relayField = els.relayUrls?.closest('.field')
+    if (relayField) relayField.hidden = isRelay
+    const advanced = els.relayUrls?.closest('details')
+    if (advanced) advanced.hidden = isRelay
+  }
+  els.transportFieldset.addEventListener('change', syncTransportUi)
+  syncTransportUi()
   loadPrefs()
   bindEvents()
 

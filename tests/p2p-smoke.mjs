@@ -17,6 +17,8 @@ import {fileURLToPath} from 'node:url'
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url))
 const PORT = Number(process.env.SMOKE_PORT || 8123)
+const TRANSPORT = process.env.SMOKE_TRANSPORT || 'relay'
+const gameUrl = (extra = {}) => `${BASE}/games/gomoku/?${new URLSearchParams({transport: TRANSPORT, ...extra})}`
 const BASE = `http://localhost:${PORT}`
 
 const BROWSERS = [
@@ -149,20 +151,20 @@ async function waitForServer() {
 
 const SNAP = `JSON.stringify({
   stones: document.querySelectorAll('#board .stone').length,
-  role: document.getElementById('role-text').textContent,
-  net: document.getElementById('net-text').textContent,
-  status: document.getElementById('game-status').textContent,
+  role: (document.getElementById('role-text') || {}).textContent || '',
+  net: (document.getElementById('net-text') || {}).textContent || '',
+  status: (document.getElementById('game-status') || {}).textContent || '',
   players: [...document.querySelectorAll('#player-list li')].map((li) => li.textContent.trim()),
   log: [...document.querySelectorAll('#log-list li')].map((li) => li.textContent.trim()),
-  diag: document.getElementById('diag-body').textContent.replace(/\\s+/g, ' ').trim()
+  diag: ((document.getElementById('diag-body') || {}).textContent || '').replace(/\\s+/g, ' ').trim()
 })`
 
 const onlineCount = (snapshot) => Number((snapshot.net.match(/(\d+) 人在线/) || [])[1] || 0)
 const clickCell = (cdp, index) => cdp.evaluate(`document.querySelector('#board .cell[data-index="${index}"]').click()`)
 
 async function enterRoom(cdp, {name, code, action}) {
-  await cdp.send('Page.navigate', {url: `${BASE}/games/gomoku/`})
-  await sleep(1500)
+  await cdp.send('Page.navigate', {url: gameUrl()})
+  await sleep(2500)
   await cdp.evaluate(`(() => {
     document.getElementById('name-input').value = ${JSON.stringify(name)}
     document.getElementById('code-input').value = ${JSON.stringify(code)}
@@ -231,14 +233,15 @@ async function main() {
     if (!hostChat.log.some((line) => line.includes('联机测试一下'))) problems.push('房主没收到聊天')
 
     console.log('[5] 诊断面板 / ICE 候选')
-    await host.cdp.evaluate(`document.getElementById('ice-btn').click()`)
+    const iceVisible = await host.cdp.evaluate(`!document.getElementById('ice-btn').hidden`)
+    if (iceVisible) await host.cdp.evaluate(`document.getElementById('ice-btn').click()`)
     await sleep(2500)
     const diag = JSON.parse(await host.cdp.evaluate(SNAP)).diag
     console.log('   ', diag.slice(0, 320))
     if (diag.includes('还没有连上任何人')) problems.push('诊断面板没有刷新对端状态')
 
     console.log('[6] 客人用邀请链接刷新重连，应回到白棋座位且棋盘保留')
-    await guest.cdp.send('Page.navigate', {url: `${BASE}/games/gomoku/?room=${room}&relay=mqtt`})
+    await guest.cdp.send('Page.navigate', {url: gameUrl({room, relay: 'mqtt'})})
     let reconnected = false
     for (let second = 1; second <= 20; second++) {
       await sleep(1000)
@@ -261,7 +264,7 @@ async function main() {
     console.log('[8] 房主离开，客人应收到提示')
     await host.cdp.send('Page.navigate', {url: 'about:blank'})
     let leftSeen = false
-    for (let second = 1; second <= 15; second++) {
+    for (let second = 1; second <= 25; second++) {
       await sleep(1000)
       const snapshot = JSON.parse(await guest.cdp.evaluate(SNAP))
       if (snapshot.status.includes('房主')) {

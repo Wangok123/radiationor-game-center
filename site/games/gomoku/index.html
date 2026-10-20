@@ -54,6 +54,10 @@
       </label>
     </div>
 
+    <fieldset class="strategy-fieldset" id="transport-fieldset">
+      <legend>连接方式</legend>
+    </fieldset>
+
     <fieldset class="strategy-fieldset" id="strategy-fieldset">
       <legend>信令中继</legend>
     </fieldset>
@@ -123,7 +127,7 @@
   </section>
 
   <p class="footnote">
-    没有后端、没有数据库、没有第三方统计。房间号相同的人在浏览器之间直接建连，信令中继只看到「有人想连某个房间」，看不到棋盘内容。
+    没有后端、没有数据库、没有第三方统计。中继模式下对局内容是端到端加密的，公共中继只看到密文；直连模式下数据在你们浏览器之间直传。
   </p>
 </main>
 

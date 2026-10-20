@@ -13,7 +13,7 @@
 export const APP_ID = 'radiationor-game-center-v1'
 
 /** 站点构建版本：排查「两台设备版本不一致」时对比这个字符串。 */
-export const BUILD = 'v4 · 2026-10-20'
+export const BUILD = 'v5 · 2026-10-20'
 
 /**
  * 默认 STUN 服务器。

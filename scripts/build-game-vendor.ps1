@@ -1,4 +1,4 @@
-﻿# 重新生成 site/assets/vendor 下的联机依赖。
+﻿# 重新生成 site/assets/vendor 下的联机依赖（三种信令 + 中继模式用的 mqtt 客户端）。
 #
 # 只有升级 Trystero 时才需要跑一次。产物（vendor/*.js）是提交进仓库的，
 # 因此构建站点、部署到 GitHub Pages 都不需要 Node。
@@ -18,6 +18,7 @@ $outDir = Join-Path $repoRoot 'site/assets/vendor'
 # 固定版本，避免每次生成出不同的产物
 $trysteroVersion = '0.26.0'
 $esbuildVersion = '0.25.10'
+$mqttVersion = '5.16.1'
 $strategies = @('mqtt', 'nostr', 'torrent')
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
@@ -38,8 +39,9 @@ Push-Location $workDir
 try {
     $packages = @((Join-Path $workDir 'node_modules/esbuild'))
     $packages += $strategies | ForEach-Object { Join-Path $workDir "node_modules/@trystero-p2p/$_" }
+    $packages += Join-Path $workDir 'node_modules/mqtt'
     if ($packages | Where-Object { -not (Test-Path -LiteralPath $_) }) {
-        $specs = @("esbuild@$esbuildVersion") + ($strategies | ForEach-Object { "@trystero-p2p/$_@$trysteroVersion" })
+        $specs = @("esbuild@$esbuildVersion", "mqtt@$mqttVersion") + ($strategies | ForEach-Object { "@trystero-p2p/$_@$trysteroVersion" })
         & $npm install --silent --no-audit --no-fund @specs
         if ($LASTEXITCODE -ne 0) { throw 'npm install 失败' }
     }
@@ -59,5 +61,11 @@ foreach ($name in $strategies) {
     $size = [Math]::Round((Get-Item -LiteralPath $outFile).Length / 1KB, 1)
     Write-Host ("    {0,-8} {1,7} KB" -f "$name.js", $size)
 }
+
+# 中继模式用的 mqtt 客户端：mqtt 自带浏览器 ESM 构建，直接复制即可
+$relaySource = Join-Path $workDir 'node_modules/mqtt/dist/mqtt.esm.js'
+if (-not (Test-Path -LiteralPath $relaySource)) { throw '找不到 mqtt 的浏览器构建（mqtt/dist/mqtt.esm.js）' }
+Copy-Item -LiteralPath $relaySource -Destination (Join-Path $outDir 'relay.js') -Force
+Write-Host ("    {0,-8} {1,7} KB" -f 'relay.js', [Math]::Round((Get-Item (Join-Path $outDir 'relay.js')).Length / 1KB, 1))
 
 Write-Host "[3/3] 完成。产物在 site/assets/vendor/，记得把改动一起提交。"
