@@ -1,25 +1,29 @@
 # RadiationOr 游戏中心
 
-朋友之间点开就能玩的小游戏合集。整个站是**纯静态文件**，托管在 GitHub Pages，没有后端：
-房主的浏览器当裁判。连接有两条路可选：
+一个**即点即玩网页小游戏的索引站**，尤其收 AI 生成的作品：收录清单在 `site/games.json`，
+卡片、标签、搜索都由它渲染。整个站是**纯静态文件**，托管在 GitHub Pages，没有后端。
 
-- **中继模式（默认）**：对局消息经公共 MQTT broker 转发，端到端加密。两端只要能上网就能连，
-  不需要 TURN，微信内置浏览器也能玩。
-- **直连模式（P2P）**：WebRTC 点对点直传，不经过中继。延迟更低、数据不经第三方，
-  但手机流量这类对称 NAT 环境下打洞经常失败。
+站上的游戏分两类：
+
+- **站内游戏**（如五子棋）：代码在这个仓库里，能用上共用联机层——房主的浏览器当裁判，
+  对局走「中继模式」（公共 MQTT broker 转发 + 端到端加密，不需要 TURN）或「直连模式」（WebRTC 点对点）。
+- **外链游戏**：点卡片跳到别人的站点。能不能联机由那个游戏自己决定，本站只负责发现。
 
 - 线上地址：<https://wangok123.github.io/radiationor-game-center/>
-- 目前有：五子棋（15×15，2 人，回合制）
+- 目前收录：五子棋（站内，15×15，2 人，可联机）
+- 加一个游戏：改 `site/games.json` 加一条，见下面「收录一个游戏」
 - **下一步做什么：见 [ROADMAP.md](ROADMAP.md)**（每完成一项就更新它）
 
 ## 目录
 
 ```
 site/                    直接托管到 Pages 的静态站点，没有构建步骤
-  index.html             首页：游戏列表 + 怎么联机
+  index.html             首页：从 games.json 渲染游戏索引 + 怎么联机
+  games.json             收录清单：一条 = 一个游戏（站内相对路径或外链）
   assets/                所有游戏共用的资源
     base.css             设计变量、页头、按钮、表单、面板、页脚
-    home.css             首页（hero、游戏卡片、步骤）
+    home.css             首页（hero、游戏卡片、搜索/标签工具栏、步骤）
+    games-index.js       索引逻辑：过滤 / 搜索 / 卡片渲染（纯函数可直接单测）
     room.css             房间界面：房间条、玩家、日志、聊天、连接诊断
     transport.js         连接方式入口：中继模式 / 直连模式
     transport-relay.js   中继模式：公共 MQTT + AES-GCM 加密
@@ -34,20 +38,74 @@ site/                    直接托管到 Pages 的静态站点，没有构建步
     gomoku/              五子棋：index.html + app.js + rules.js + gomoku.css
 scripts/
   serve.mjs              本地预览服务器
+  validate-games.mjs     校验 games.json（字段 + 站内路径是否存在）
+  lib/games-schema.mjs   校验规则本体（脚本和单测共用）
   build-game-vendor.ps1  重新生成 assets/vendor（只在升级 Trystero 时）
 tests/
   gomoku.test.mjs        规则单测
+  games-index.test.mjs   索引的过滤/搜索/数据校验单测
+  index-smoke.mjs        无头浏览器验证首页卡片、标签、搜索
   p2p-smoke.mjs          两个真实浏览器跑完整一局，验证联机链路
 ```
 
+## 收录一个游戏
+
+索引数据只有一份：`site/games.json`。加一条就收录了，**不用改代码**。
+
+```json
+{
+  "slug": "some-ai-game",
+  "title": "某个 AI 小游戏",
+  "url": "https://example.com/game/",
+  "desc": "一句话介绍，显示在卡片上。",
+  "author": "作者 / 出处",
+  "tags": ["解谜", "单人"],
+  "players": "1 人",
+  "duration": "10 分钟",
+  "multiplayer": false,
+  "icon": "谜",
+  "added": "2026-10-21"
+}
+```
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `slug` | 是 | 唯一标识，小写字母/数字/连字符 |
+| `title` | 是 | 卡片标题 |
+| `url` | 是 | 站内写相对路径（`games/gomoku/`），外部写完整 `https://…` |
+| `desc` | 是 | 卡片上的一句话介绍 |
+| `tags` | 否 | 字符串数组，同时用于筛选按钮和搜索 |
+| `author` | 否 | 作者或出处；收别人的作品时请务必填 |
+| `players` / `duration` | 否 | 人数、时长，卡片上的小圆角标签 |
+| `multiplayer` | 否 | `true` 时卡片显示「可联机」徽标 |
+| `icon` | 否 | 卡片左侧方块里的 1–2 个字符，默认取标题首字 |
+| `added` | 否 | 收录日期 `YYYY-MM-DD` |
+
+两条规则：
+
+- **站内 vs 外链**：`url` 以 `http` 开头就当外链，卡片会新开标签页并显示「前往 ↗」；其余按站内相对路径处理，显示「进入 →」。
+- **外链游戏的联机不由本站负责**：它在别人域名下跑，能不能联机取决于它自己。本站只负责「发现」，标 `multiplayer: true` 前请先确认。
+
+改完跑一下校验（CI 也会跑，写错会挡住部署）：
+
+```powershell
+node scripts/validate-games.mjs
+```
+
+它会检查字段类型、slug/url 是否重复，以及**站内 url 指向的文件是否真的存在**。
+
 ## 加一个新游戏
 
-联机、诊断、样式都已经抽成共用层了，加游戏基本只有三步：
+如果游戏就在本站（`site/games/<slug>/`），照下面走，就能用上共用层；如果只是个外链，**只需要在 `games.json` 加一条**，不用建目录。
+
+联机、诊断、样式都已经抽成共用层了，加一个站内游戏基本只有三步：
 
 1. 复制 `site/games/gomoku/` 为 `site/games/<你的游戏>/`，把 `rules.js`（纯规则）和
    `app.js`（状态 + 渲染 + 房主判定）换成你的玩法，页面里的 `assets/` 路径保持不变。
-2. 在 `site/index.html` 的游戏列表里加一张卡片（照抄五子棋那张，换链接和文案）。
+2. 在 `site/games.json` 里加一条，`url` 写 `games/<你的游戏>/`。
 3. push。
+
+外链游戏则是另一种情况：不用建目录，只在 `games.json` 加一条 `https://…` 的记录。
 
 可以直接引用的共用能力：
 
@@ -86,12 +144,16 @@ node scripts/serve.mjs        # http://localhost:8123/
 ## 测试
 
 ```powershell
-node --test tests/gomoku.test.mjs   # 规则
-node tests/p2p-smoke.mjs            # 联机链路（需要本机 Edge 或 Chrome + 公网）
+node --test tests/gomoku.test.mjs tests/games-index.test.mjs   # 规则 + 索引逻辑，秒级
+node scripts/validate-games.mjs                               # 收录数据校验
+node tests/index-smoke.mjs                                     # 首页卡片/标签/搜索（无头浏览器，需本地 Edge 或 Chrome）
+node tests/p2p-smoke.mjs                                       # 联机链路（需要公网）
 ```
 
-冒烟测试会自动起服务器、开两个无头浏览器，验证：连上、双向落子、五连判胜、聊天同步、
-刷新重连回座位、重新开始、房主离开提示。
+`index-smoke` 会自动起服务器、开一个无头浏览器，验证：卡片从 `games.json` 渲染、可联机徽标、
+数量文案、搜索命中/空态、标签筛选与取消、老游戏页仍能打开、页面无 JS 报错，并把桌面/手机截图写到 `.qa/`。
+
+`p2p-smoke` 验证：连上、双向落子、五连判胜、聊天同步、刷新重连回座位、重新开始、房主离开提示。
 
 ## 重新生成 vendor
 
@@ -106,8 +168,9 @@ powershell -ExecutionPolicy Bypass -File scripts/build-game-vendor.ps1
 
 ## 部署
 
-推到 `main` 即可：`.github/workflows/deploy.yml` 直接把 `site/` 上传成 Pages 产物，
-没有构建步骤，也不需要 Node。仓库设置里 Pages 的 Source 选 **GitHub Actions**。
+推到 `main` 即可：`.github/workflows/deploy.yml` 会先跑 `validate-games.mjs` 和单测，
+再把 `site/` 直接上传成 Pages 产物。**没有构建步骤**，产物就是仓库里的静态文件。
+仓库设置里 Pages 的 Source 选 **GitHub Actions**。
 
 ## 连不上时的排查顺序
 

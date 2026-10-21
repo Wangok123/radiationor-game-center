@@ -23,7 +23,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # 没有构建步骤：site/ 就是可直接托管的静态站点（首页 + assets/ 共用层 + games/ 各游戏）
+      # 没有构建步骤：site/ 就是可直接托管的静态站点（首页 + assets/ 共用层 + games/ 各游戏）。
+      # 下面两步只是把关，不改动产物：索引数据写错、过滤逻辑退化时不该让坏页面发出去。
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate games.json
+        run: node scripts/validate-games.mjs
+      - name: Unit tests
+        run: node --test tests/games-index.test.mjs tests/gomoku.test.mjs
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

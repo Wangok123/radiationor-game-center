@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#080b10">
-<title>RadiationOr 游戏中心 · 朋友之间开一局</title>
-<meta name="description" content="不用注册、不用下载的朋友联机小游戏。开个房间号，把链接丢进群里就能在电脑或手机上直接开打。">
+<title>RadiationOr 游戏中心 · 点开即玩的网页小游戏</title>
+<meta name="description" content="收集即点即玩的网页小游戏，尤其是 AI 作品。不用注册、不用下载；支持联机的开个房间号，把链接丢进群里就能和朋友一起玩。">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/base.css">
 <link rel="stylesheet" href="assets/home.css">
@@ -32,17 +32,17 @@
   <section class="hero">
     <div class="wrap hero-inner">
       <div class="hero-copy">
-        <p class="eyebrow">Friends only · No install</p>
+        <p class="eyebrow">Instant web games · friends only</p>
         <h1>朋友之间，<span class="accent">开一局</span></h1>
-        <p class="hero-lede">不用注册、不用下载。开个房间号，把链接丢进群里，电脑打开就能直接开打。</p>
+        <p class="hero-lede">收集各种点开就能玩的网页小游戏，尤其是 AI 做的那些。不用注册、不用下载；支持联机的开个房间号，把链接丢进群里就能一起玩。</p>
         <div class="hero-actions">
           <a class="button" href="games/gomoku/">从五子棋开始</a>
           <a class="button secondary" href="#games">看看有什么游戏</a>
         </div>
         <ul class="hero-badges">
           <li>无需注册</li>
+          <li>点开即玩</li>
           <li>中继 / 直连可选</li>
-          <li>微信也能打开</li>
         </ul>
       </div>
 
@@ -91,48 +91,42 @@
           <p class="eyebrow">Games</p>
           <h2>游戏列表</h2>
         </div>
-        <p class="section-note">一个房间号就是一张桌子。下面每款都点开就能开房。</p>
+        <p class="section-note">点开即玩，不用注册。标了「可联机」的可以开个房间号，把链接发给朋友一起玩。</p>
       </div>
 
-      <ul class="game-grid">
-        <li>
-          <a class="game-card" href="games/gomoku/">
-            <span class="game-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32">
-                <path d="M4 10h24M4 22h24M10 4v24M22 4v24" stroke="#8a6a3a" stroke-width="1.6"/>
-                <circle cx="10" cy="10" r="5" fill="#0b0f14"/>
-                <circle cx="22" cy="22" r="5" fill="#ffffff" stroke="#9ca3af" stroke-width="1.4"/>
-              </svg>
-            </span>
-            <span class="game-body">
-              <h3>五子棋</h3>
-              <p>15×15 棋盘，五子连珠即胜。房主执黑先手，支持观战、聊天和刷新重连。</p>
-              <span class="game-meta"><span>2 人</span><span>回合制</span><span>5 分钟</span></span>
-            </span>
-            <span class="game-enter">进入 →</span>
-          </a>
-        </li>
+      <div class="game-toolbar">
+        <label class="game-search">
+          <span class="visually-hidden">搜索游戏</span>
+          <input id="game-search" type="search" placeholder="搜游戏名 / 作者 / 标签…" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="tag-bar" id="game-tags" role="group" aria-label="按标签筛选"></div>
+        <p class="game-count" id="game-count" aria-live="polite"></p>
+      </div>
 
-        <li>
-          <div class="game-card is-coming">
-            <span class="game-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32">
-                <rect x="6" y="6" width="20" height="20" rx="4" fill="none" stroke="#8fa0b2" stroke-width="2"/>
-                <circle cx="12" cy="12" r="2" fill="#8fa0b2"/>
-                <circle cx="20" cy="20" r="2" fill="#8fa0b2"/>
-                <circle cx="20" cy="12" r="2" fill="#8fa0b2"/>
-                <circle cx="12" cy="20" r="2" fill="#8fa0b2"/>
-              </svg>
-            </span>
-            <span class="game-body">
-              <h3>下一个游戏</h3>
-              <p>联机层已经抽成公用的了，加新游戏只要新建一个目录。想玩什么可以点单。</p>
-              <span class="game-meta"><span>占位</span><span>待定</span></span>
-            </span>
-            <span class="game-enter">在路上</span>
-          </div>
-        </li>
+      <!-- 卡片由 assets/games-index.js 从 games.json 渲染，收录游戏只需要改那个 JSON -->
+      <ul class="game-grid" id="game-grid">
+        <li class="game-skeleton" aria-hidden="true"></li>
+        <li class="game-skeleton" aria-hidden="true"></li>
       </ul>
+      <p class="game-empty" id="game-empty" hidden>没有匹配的游戏。换个关键词，或者点「全部」。</p>
+      <p class="game-empty" id="game-error" hidden></p>
+
+      <noscript>
+        <ul class="game-grid">
+          <li>
+            <a class="game-card" href="games/gomoku/">
+              <span class="game-icon" aria-hidden="true">棋</span>
+              <span class="game-body">
+                <h3>五子棋</h3>
+                <p>15×15 棋盘，五子连珠即胜。房主执黑先手，支持聊天和刷新重连。</p>
+                <span class="game-meta"><span>2 人</span><span>5 分钟</span><span>棋类</span></span>
+              </span>
+              <span class="game-enter">进入 →</span>
+            </a>
+          </li>
+        </ul>
+        <p class="section-note">开启 JavaScript 可以看到完整游戏列表和搜索。</p>
+      </noscript>
     </div>
   </section>
 
@@ -149,7 +143,7 @@
         <li class="step">
           <span class="step-num">1</span>
           <h3>开个房间</h3>
-          <p>选一个游戏，填个昵称，点「创建房间」，拿到 5 位房间号。</p>
+          <p>选一个标了「可联机」的游戏，填个昵称，点「创建房间」，拿到 5 位房间号。</p>
         </li>
         <li class="step">
           <span class="step-num">2</span>
@@ -184,6 +178,28 @@
     const params = new URLSearchParams(location.search)
     if (params.has('room')) location.replace(`games/gomoku/${location.search}`)
   })()
+</script>
+
+<script type="module">
+  import {loadGames, mountGameIndex} from './assets/games-index.js'
+
+  const grid = document.getElementById('game-grid')
+  const tagBar = document.getElementById('game-tags')
+  const searchInput = document.getElementById('game-search')
+  const countEl = document.getElementById('game-count')
+  const emptyEl = document.getElementById('game-empty')
+  const errorEl = document.getElementById('game-error')
+
+  try {
+    const data = await loadGames('./games.json')
+    mountGameIndex({grid, tagBar, searchInput, countEl, emptyEl, games: data.games})
+  } catch (error) {
+    grid.replaceChildren()
+    countEl.textContent = ''
+    errorEl.hidden = false
+    errorEl.textContent = `游戏列表加载失败：${error.message}。五子棋可以直接打开 games/gomoku/。`
+    console.error(error)
+  }
 </script>
 </body>
 </html>

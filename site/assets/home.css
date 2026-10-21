@@ -154,6 +154,128 @@ a.game-card:hover .game-enter { text-shadow: 0 0 14px rgba(182, 255, 69, .5); }
 .game-card.is-coming .game-body h3 { color: var(--text-dim); }
 .game-card.is-coming .game-enter { color: var(--text-faint); }
 
+/* ---------- 索引工具栏：搜索 + 标签筛选 ---------- */
+.game-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.game-search {
+  position: relative;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.game-search::before {
+  content: "";
+  position: absolute;
+  left: 14px; top: 50%;
+  width: 15px; height: 15px;
+  transform: translateY(-50%);
+  background: center / 15px 15px no-repeat
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%2366788a'%20stroke-width='2.2'%20stroke-linecap='round'%3E%3Ccircle%20cx='11'%20cy='11'%20r='6.5'/%3E%3Cpath%20d='M16%2016l4.5%204.5'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.game-search input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+}
+.game-search input:focus {
+  outline: none;
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px var(--lime-soft);
+}
+.game-search input::placeholder { color: var(--text-faint); }
+
+.tag-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tag-chip {
+  padding: 6px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 700 12px/1.5 var(--mono);
+  cursor: pointer;
+  transition: border-color .14s ease, color .14s ease, background .14s ease;
+}
+.tag-chip:hover {
+  border-color: rgba(182, 255, 69, .5);
+  color: var(--text);
+}
+.tag-chip:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.tag-chip.is-active {
+  border-color: var(--lime);
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.game-count {
+  margin: 0 0 0 auto;
+  color: var(--text-faint);
+  font: 700 12px/1.6 var(--mono);
+  white-space: nowrap;
+}
+
+/* 卡片里的「可联机」徽标、作者、图标文字 */
+.game-badge {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid rgba(182, 255, 69, .42);
+  border-radius: 999px;
+  background: var(--lime-soft);
+  color: var(--lime);
+  font: 800 10px/1.8 var(--mono);
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.game-icon {
+  color: #33230c;
+  font: 900 22px/1 var(--mono);
+  letter-spacing: 0;
+}
+.game-meta > span.is-author { color: var(--text-faint); }
+.game-meta > span.is-author::before { content: "@ "; opacity: .7; }
+
+/* 加载中的占位卡片 */
+.game-skeleton {
+  min-height: 132px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, .02);
+  animation: game-pulse 1.4s ease-in-out infinite;
+}
+@keyframes game-pulse {
+  0%, 100% { opacity: .35; }
+  50% { opacity: .75; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-skeleton { animation: none; opacity: .5; }
+}
+
+/* 空结果 / 加载失败 */
+.game-empty {
+  margin: 18px 0 0;
+  padding: 26px 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  text-align: center;
+}
+.game-empty[hidden] { display: none; }
+
+
 /* ---------- 怎么联机 ---------- */
 .steps {
   display: grid;
@@ -187,4 +309,7 @@ a.game-card:hover .game-enter { text-shadow: 0 0 14px rgba(182, 255, 69, .5); }
   .hero-visual { order: -1; }
   .hero-board { width: min(70%, 240px); }
   .game-grid { grid-template-columns: minmax(0, 1fr); }
+  .game-toolbar { gap: 10px; }
+  .game-search { flex-basis: 100%; }
+  .game-count { margin-left: 0; }
 }

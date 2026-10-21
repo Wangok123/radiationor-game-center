@@ -1,0 +1,29 @@
+{
+  "updated": "2026-10-21",
+  "games": [
+    {
+      "slug": "gomoku",
+      "title": "五子棋",
+      "url": "games/gomoku/",
+      "desc": "15×15 棋盘，五子连珠即胜。房主执黑先手，支持聊天和刷新重连。",
+      "author": "RadiationOr",
+      "tags": ["棋类", "回合制"],
+      "players": "2 人",
+      "duration": "5 分钟",
+      "multiplayer": true,
+      "icon": "棋",
+      "added": "2026-10-20"
+    },
+    {
+      "slug": "shanzhongxiaowu",
+      "title": "山中小屋 第三版",
+      "url": "https://yuanyigames.top/",
+      "desc": "探索与背叛的网页版：单人可和机器人跑，也能跨网开游戏大厅组局、邀请朋友，含拓展包、剧本图鉴和本地存档。",
+      "author": "yuanyigames",
+      "tags": ["桌游", "多人", "策略"],
+      "multiplayer": true,
+      "icon": "屋",
+      "added": "2026-10-21"
+    }
+  ]
+}
