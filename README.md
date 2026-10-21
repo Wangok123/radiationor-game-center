@@ -147,11 +147,12 @@ node scripts/serve.mjs        # http://localhost:8123/
 node --test tests/gomoku.test.mjs tests/games-index.test.mjs   # 规则 + 索引逻辑，秒级
 node scripts/validate-games.mjs                               # 收录数据校验
 node tests/index-smoke.mjs                                     # 首页卡片/标签/搜索（无头浏览器，需本地 Edge 或 Chrome）
+$env:SMOKE_BASE = "https://wangok123.github.io/radiationor-game-center"; node tests/index-smoke.mjs   # 同一套检查直接打线上
 node tests/p2p-smoke.mjs                                       # 联机链路（需要公网）
 ```
 
-`index-smoke` 会自动起服务器、开一个无头浏览器，验证：卡片从 `games.json` 渲染、可联机徽标、
-数量文案、搜索命中/空态、标签筛选与取消、老游戏页仍能打开、页面无 JS 报错，并把桌面/手机截图写到 `.qa/`。
+`index-smoke` 会自动起服务器（给了 `SMOKE_BASE` 就改成打那个地址、不起本地服务）、开一个无头浏览器，验证：卡片从 `games.json` 渲染、可联机徽标、
+数量文案、站内/外链卡片的跳转方式、搜索命中/空态、标签筛选与取消、老游戏页仍能打开、页面无 JS 报错，并把桌面/手机截图写到 `.qa/`。
 
 `p2p-smoke` 验证：连上、双向落子、五连判胜、聊天同步、刷新重连回座位、重新开始、房主离开提示。
 

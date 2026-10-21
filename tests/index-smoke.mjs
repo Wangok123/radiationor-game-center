@@ -1,7 +1,8 @@
 // 首页索引的 UI 冒烟测试：真的开一个无头浏览器，验证 games.json → 卡片 / 标签 / 搜索都正常。
-//   node tests/index-smoke.mjs
+//   node tests/index-smoke.mjs                                  # 打本地（会自动起 server）
+//   SMOKE_BASE=https://wangok123.github.io/radiationor-game-center node tests/index-smoke.mjs   # 打线上
 //
-// 不需要网络：只访问本地 server。需要本机 Edge 或 Chrome（可用 BROWSER_PATH 指定）。
+// 需要本机 Edge 或 Chrome（可用 BROWSER_PATH 指定）。
 
 import {spawn} from 'node:child_process'
 import {existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs'
@@ -11,7 +12,8 @@ import {fileURLToPath} from 'node:url'
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url))
 const PORT = Number(process.env.SMOKE_PORT || 8199)
-const BASE = `http://localhost:${PORT}`
+const PROVIDED_BASE = (process.env.SMOKE_BASE || '').replace(/\/+$/, '')
+const BASE = PROVIDED_BASE || `http://localhost:${PORT}`
 const SHOT_DIR = join(repoRoot, '.qa')
 
 const BROWSERS = [
@@ -199,7 +201,8 @@ const check = (name, condition, detail = '') => {
 }
 
 async function main() {
-  const server = startServer()
+  // SMOKE_BASE 给了就打线上，不另起本地 server
+  const server = PROVIDED_BASE ? null : startServer()
   let browser = null
   try {
     await waitForServer()
@@ -266,7 +269,7 @@ async function main() {
     check('页面无 JS 报错', errors.length === 0, errors.join(' | '))
   } finally {
     if (browser) await shutdownBrowser(browser)
-    server.kill()
+    server?.kill()
   }
 
   const failed = checks.filter((entry) => !entry.ok)
